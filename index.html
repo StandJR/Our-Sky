@@ -98,11 +98,14 @@ h1 {
 .star i {
   display: block;
   position: relative;
-  width: var(--s, 22px);
-  height: var(--s, 22px);
+  width: 4px !important;
+  height: 4px !important;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0 5%, rgba(255,255,255,.98) 9%, rgba(226,239,255,.78) 17%, rgba(185,213,255,.24) 38%, transparent 70%);
-  box-shadow: 0 0 4px 1px rgba(235,244,255,.42), 0 0 13px 3px rgba(190,215,255,.20), 0 0 26px 7px rgba(155,190,245,.08);
+  background: #fff;
+  box-shadow:
+    0 0 2px 1px rgba(255,255,255,.95),
+    0 0 8px 3px rgba(210,230,255,.42),
+    0 0 20px 7px rgba(170,205,255,.16);
   animation: twinkle 7s ease-in-out infinite;
   animation-delay: var(--d, 0s);
 }
@@ -112,12 +115,12 @@ h1 {
   left: 50%;
   top: 50%;
   width: 1px;
-  height: 30px;
+  height: 34px;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  opacity: .28;
-  background: linear-gradient(180deg, transparent, rgba(235,244,255,.48) 35%, rgba(255,255,255,.8) 50%, rgba(235,244,255,.48) 65%, transparent);
-  filter: blur(.25px);
+  opacity: .22;
+  background: linear-gradient(180deg, transparent, rgba(235,244,255,.48) 38%, #fff 50%, rgba(235,244,255,.48) 62%, transparent);
+  filter: blur(.3px);
 }
 .star i::after { content: none; }
 .star:focus-visible { outline: 2px solid var(--cream); outline-offset: -4px; border-radius: 50%; }
@@ -125,9 +128,13 @@ h1 {
 
 .star.first { --c: var(--glow); width: 64px; height: 64px; margin: -32px 0 0 -32px; color: #fff; filter: drop-shadow(0 0 10px rgba(220,235,255,.56)); }
 .star.first i {
-  --s: 34px;
+  width: 5px !important;
+  height: 5px !important;
   animation: twinkle 8s ease-in-out infinite;
-  box-shadow: 0 0 5px 2px rgba(245,249,255,.62), 0 0 18px 5px rgba(190,215,255,.24), 0 0 38px 10px rgba(155,190,245,.10);
+  box-shadow:
+    0 0 2px 1px rgba(255,255,255,.98),
+    0 0 10px 4px rgba(210,230,255,.48),
+    0 0 28px 9px rgba(155,190,245,.18);
 }
 .star.first i::before { height: 54px; opacity: .38; }
 
