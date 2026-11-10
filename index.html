@@ -859,7 +859,10 @@ textarea { resize: vertical; }
   };
 
   async function loadStars() {
-    const { data, error } = await sb.from("stars").select("*")
+    const columns = session
+      ? "*"
+      : "id,author_name,title,body,happened_on,photo_path,created_at,star_type";
+    const { data, error } = await sb.from("stars").select(columns)
       .order("happened_on", { ascending: true }).order("created_at", { ascending: true });
     if (error) { toast("Не получилось загрузить звёзды. Проверь интернет."); return; }
     syncStars(data || []);
