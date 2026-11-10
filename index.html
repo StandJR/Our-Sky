@@ -565,19 +565,25 @@ textarea { resize: vertical; }
 
   function showView(s) {
     const isFirst = s.id === "first";
+    // Защита от null/пустых значений, которые могут прийти из старых записей БД.
+    const title = typeof s.title === "string" && s.title.trim()
+      ? s.title.trim() : (isFirst ? (FIRST.title || "Всё началось") : "Воспоминание");
+    const date = typeof s.happened_on === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(s.happened_on)
+      ? s.happened_on : (isFirst ? (FIRST.date || CFG.START_DATE || "2026-11-03") : "");
+    const body = typeof s.body === "string" ? s.body.trim() : "";
     const photo = h("div", { class: "card-photo" });
     setDlg("view",
       closeBtn(),
-      h("p", { class: "card-date", text: fmtFull(s.happened_on) }),
-      h("h2", { class: "card-title", id: "dlgTitle", text: s.title }),
+      h("p", { class: "card-date", text: date ? fmtFull(date) : "" }),
+      h("h2", { class: "card-title", id: "dlgTitle", text: title }),
       photo,
-      s.body ? h("p", { class: "card-text", text: s.body }) : null,
+      body ? h("p", { class: "card-text", text: body }) : null,
       s.author_name ? h("p", { class: "card-author", text: "Автор: " + s.author_name }) : null,
       isFirst ? null : h("div", { class: "row" },
         h("button", { class: "btn", type: "button", onclick: () => showForm(s) }, "Изменить"),
         h("button", { class: "btn danger", type: "button", onclick: () => showDelete(s) }, "Удалить"))
     );
-    if (s.photo_path) attachPhoto(photo, s.photo_path, s.title);
+    if (s.photo_path) attachPhoto(photo, s.photo_path, title);
   }
 
   const compress = async (file, max = 1600) => {
