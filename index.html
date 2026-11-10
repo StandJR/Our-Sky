@@ -370,7 +370,10 @@ textarea { resize: vertical; }
 <section class="gate" id="gate" hidden>
   <div class="gate-in">
     <h2>Наше небо</h2>
-    <p id="gateMsg">Это личное небо для двоих. Открой свою ссылку для входа, и оно появится.</p>
+    <p id="gateMsg">Наше небо хранит воспоминания. Можно войти или просто посмотреть.</p>
+    <div class="row" style="justify-content:center">
+      <button class="btn primary" id="guestBtn" type="button">Войти как гость</button>
+    </div>
     <details id="gateLogin">
       <summary>Войти по почте и паролю</summary>
       <form id="loginForm">
@@ -509,7 +512,7 @@ textarea { resize: vertical; }
   /* ---------- Дрейфующие звёзды ---------- */
   const field = $("field");
   const bodies = new Map();
-  const COLORS = ["#ffd9a0", "#fff3e8", "#ffc2d4", "#ffe6b3", "#ffd0a8"];
+  const COLORS = ["#e8efff", "#fff3e8"];
   const EDGE = 30;
   let fw = 0, fh = 0, loaded = false, lastTs = 0;
 
@@ -537,11 +540,13 @@ textarea { resize: vertical; }
       h("span", { class: "star-date", "aria-hidden": "true", text: dateLabel })
     );
     if (!isFirst) {
-      // Date determines the hue: a quiet silver-blue range, consistently on every reload.
-      const dateHash = hash(dateValue || String(s.id));
-      const hue = 195 + (dateHash % 31);
-      el.style.setProperty("--star-color", "hsl(" + hue + " 48% 91%)");
-      el.style.setProperty("--star-glow", "hsla(" + hue + ", 70%, 78%, .42)");
+      if (s.star_type === "gold") {
+        el.style.setProperty("--star-color", "#ffd58a");
+        el.style.setProperty("--star-glow", "rgba(255, 190, 92, .68)");
+      } else {
+        el.style.setProperty("--star-color", "#e8efff");
+        el.style.setProperty("--star-glow", "rgba(190, 215, 255, .48)");
+      }
     }
     el.style.setProperty("--d", ((hs % 36) / 10).toFixed(1) + "s");
     const b = {
@@ -593,6 +598,10 @@ textarea { resize: vertical; }
       const b = bodies.get(s.id);
       if (b) {
         b.data = s;
+        const isFirst = s.id === "first";
+        b.el.classList.toggle("first", isFirst);
+        b.el.style.setProperty("--star-color", isFirst ? "#ffd58a" : (s.star_type === "gold" ? "#ffd58a" : "#e8efff"));
+        b.el.style.setProperty("--star-glow", isFirst || s.star_type === "gold" ? "rgba(255, 190, 92, .68)" : "rgba(190, 215, 255, .48)");
         const dateValue = typeof s.happened_on === "string" ? s.happened_on : "";
         const dateLabel = /^\\d{4}-\\d{2}-\\d{2}$/.test(dateValue)
           ? dateValue.slice(8, 10) + "." + dateValue.slice(5, 7) + "." + dateValue.slice(2, 4)
@@ -640,12 +649,12 @@ textarea { resize: vertical; }
 
   const attachPhoto = async (box, path, alt) => {
     try {
-      const { data } = await sb.storage.from("photos").createSignedUrl(path, 3600);
-      if (!data || !data.signedUrl) return;
+      const { data, error } = await sb.functions.invoke("get-star-photo", { body: { path } });
+      if (error || !data || !data.url) return;
       const img = new Image();
       img.alt = alt;
       img.onload = () => box.append(img);
-      img.src = data.signedUrl;
+      img.src = data.url;
     } catch (_) { /* фото просто не покажется */ }
   };
 
@@ -658,6 +667,11 @@ textarea { resize: vertical; }
       ? s.happened_on : (isFirst ? (FIRST.date || CFG.START_DATE || "2026-11-03") : "");
     const body = typeof s.body === "string" ? s.body.trim() : "";
     const photo = h("div", { class: "card-photo" });
+    const ownerControls = isMember && !isFirst
+      ? h("div", { class: "row" },
+          h("button", { class: "btn", type: "button", onclick: () => showForm(s) }, "Изменить"),
+          h("button", { class: "btn danger", type: "button", onclick: () => showDelete(s) }, "Удалить"))
+      : null;
     setDlg("view",
       closeBtn(),
       h("p", { class: "card-date", text: date ? fmtFull(date) : "" }),
@@ -665,9 +679,7 @@ textarea { resize: vertical; }
       photo,
       body ? h("p", { class: "card-text", text: body }) : null,
       s.author_name ? h("p", { class: "card-author", text: "Автор: " + s.author_name }) : null,
-      isFirst ? null : h("div", { class: "row" },
-        h("button", { class: "btn", type: "button", onclick: () => showForm(s) }, "Изменить"),
-        h("button", { class: "btn danger", type: "button", onclick: () => showDelete(s) }, "Удалить"))
+      ownerControls
     );
     if (s.photo_path) attachPhoto(photo, s.photo_path, title);
   }
@@ -696,6 +708,12 @@ textarea { resize: vertical; }
     iBody.value = editing ? s.body : "";
     const iFile = h("input", { id: "f-photo", type: "file", accept: "image/*" });
     const iRm = h("input", { id: "f-rm", type: "checkbox" });
+    const iPrivate = h("input", { id: "f-private", type: "checkbox" });
+    iPrivate.checked = editing ? !!s.is_private : false;
+    const iType = h("select", { id: "f-type" },
+      h("option", { value: "silver" }, "Серебряная"),
+      h("option", { value: "gold" }, "Золотая"));
+    iType.value = editing ? (s.star_type || "silver") : "silver";
     const err = h("p", { class: "err", role: "alert" });
     const save = h("button", { class: "btn primary", type: "submit" }, editing ? "Сохранить изменения" : "✦  Зажечь звезду");
 
@@ -716,7 +734,10 @@ textarea { resize: vertical; }
           if (up.error) throw up.error;
           photo_path = path;
         }
-        const row = { title, body: iBody.value.trim(), happened_on: iDate.value, photo_path };
+        const row = {
+          title, body: iBody.value.trim(), happened_on: iDate.value, photo_path,
+          is_private: iPrivate.checked, star_type: iType.value
+        };
         let newId;
         if (editing) {
           const r = await sb.from("stars").update(row).eq("id", s.id);
@@ -746,6 +767,9 @@ textarea { resize: vertical; }
         iTitle,
         h("label", { for: "f-body" }, "Что запомнилось"),
         iBody,
+        h("label", { for: "f-type" }, "Тип звезды"),
+        iType,
+        h("label", { class: "check", for: "f-private" }, iPrivate, "Личное воспоминание — видно только нам двоим"),
         h("label", { for: "f-photo" }, "Фото (необязательно)"),
         iFile,
         editing && s.photo_path ? h("label", { class: "check", for: "f-rm" }, iRm, "Убрать текущее фото") : null,
@@ -826,7 +850,7 @@ textarea { resize: vertical; }
     ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
     : null;
 
-  let session = null, people = {}, channel = null, reloadTimer = null, started = false;
+  let session = null, isGuest = false, isMember = false, people = {}, channel = null, reloadTimer = null, started = false;
 
   const showGate = (msg) => {
     $("app").hidden = true;
@@ -849,16 +873,21 @@ textarea { resize: vertical; }
   async function start() {
     $("gate").hidden = true;
     $("app").hidden = false;
+    $("addBtn").hidden = !isMember;
     await new Promise((r) => requestAnimationFrame(r));
     measure();
     if (!bodies.has("first")) {
       createBody({ id: "first", title: FIRST.title, happened_on: FIRST.date, body: FIRST.text, author_name: null, photo_path: null }, false);
     }
     if (!started) { started = true; requestAnimationFrame(step); }
-    try {
-      const r = await sb.from("people").select("user_id,name");
-      people = Object.fromEntries((r.data || []).map((p) => [p.user_id, p.name]));
-    } catch (_) { /* имена не критичны */ }
+    if (isMember) {
+      try {
+        const r = await sb.from("people").select("user_id,name");
+        people = Object.fromEntries((r.data || []).map((p) => [p.user_id, p.name]));
+      } catch (_) { /* имена не критичны */ }
+    } else {
+      people = {};
+    }
     await loadStars();
     if (!channel) {
       channel = sb.channel("stars-live")
@@ -867,13 +896,22 @@ textarea { resize: vertical; }
     }
   }
 
-  const setSession = (s) => {
+  const setSession = async (s) => {
     const same = session && s && session.user.id === s.user.id;
     session = s;
+    isGuest = false;
     if (same) return;
     if (!s) {
       if (channel) { sb.removeChannel(channel); channel = null; }
+      isMember = false;
       showGate();
+      return;
+    }
+    const { data: member } = await sb.from("people").select("user_id").eq("user_id", s.user.id).maybeSingle();
+    isMember = !!member;
+    if (!isMember) {
+      await sb.auth.signOut();
+      showGate("Этот аккаунт не входит в число владельцев нашего неба.");
       return;
     }
     start();
@@ -892,14 +930,25 @@ textarea { resize: vertical; }
       history.replaceState(null, "", location.pathname + location.search);
     }
     const { data } = await sb.auth.getSession();
-    setSession(data.session);
+    if (data.session) await setSession(data.session);
+    else {
+      isGuest = true;
+      isMember = false;
+      await start();
+    }
     sb.auth.onAuthStateChange((_ev, s) => setSession(s));
 
-    document.addEventListener("visibilitychange", () => { if (!document.hidden && session) loadStars(); });
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && (session || isGuest)) loadStars(); });
   }
 
   /* ---------- Форма входа ---------- */
   const gErr = $("gateErr");
+  $("guestBtn").addEventListener("click", async () => {
+    if (!sb) { showGate("Не удалось подключиться к базе."); return; }
+    isGuest = true;
+    isMember = false;
+    await start();
+  });
   $("loginForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     gErr.textContent = "";
