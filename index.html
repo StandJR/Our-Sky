@@ -359,7 +359,7 @@ textarea { resize: vertical; }
     <p class="detail" id="detail"></p>
   </header>
   <div class="field" id="field" role="group" aria-label="Звёзды с нашими воспоминаниями"></div>
-  <div class="dock">
+  <div class="dock" id="dock">
     <button class="add" id="addBtn" type="button" aria-label="Добавить звезду">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
     </button>
@@ -873,7 +873,7 @@ textarea { resize: vertical; }
   async function start() {
     $("gate").hidden = true;
     $("app").hidden = false;
-    $("addBtn").hidden = !isMember;
+    $("dock").hidden = !isMember;
     await new Promise((r) => requestAnimationFrame(r));
     measure();
     if (!bodies.has("first")) {
@@ -931,11 +931,7 @@ textarea { resize: vertical; }
     }
     const { data } = await sb.auth.getSession();
     if (data.session) await setSession(data.session);
-    else {
-      isGuest = true;
-      isMember = false;
-      await start();
-    }
+    else showGate();
     sb.auth.onAuthStateChange((_ev, s) => setSession(s));
 
     document.addEventListener("visibilitychange", () => { if (!document.hidden && (session || isGuest)) loadStars(); });
