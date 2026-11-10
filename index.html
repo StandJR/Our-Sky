@@ -898,9 +898,17 @@ textarea { resize: vertical; }
       try {
         const r = await api({ action: "confirm", star_id: s.id, code: iCode.value });
         if (!r.ok) throw r;
-        await loadStars();
+        try { await loadStars(); } catch (_) { /* удаление уже подтверждено сервером */ }
         dlg.close();
-        toast("Звезда удалена");
+        if (r.notification_sent) {
+          toast(r.media_error ? "Звезда удалена. Уведомление отправлено, но медиафайл не удалось приложить." : "Звезда удалена. Второй администратор получил уведомление.");
+        } else if (r.no_other_admin_chat) {
+          toast("Звезда удалена, но у второго администратора не привязан Telegram.");
+        } else if (r.notification_delivered_to > 0) {
+          toast("Звезда удалена. Уведомление доставлено не всем администраторам.");
+        } else {
+          toast("Звезда удалена, но уведомление не доставлено. Проверь Telegram второго администратора.");
+        }
       } catch (x) {
         err.textContent = errText(x);
         del.disabled = false;
