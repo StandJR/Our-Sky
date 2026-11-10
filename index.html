@@ -336,6 +336,17 @@ dialog .row .btn.primary {
 .card-date { margin: 0 52px 4px 0; color: var(--gold); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
 .card-title { margin: 0 52px 12px 0; font-family: var(--font-display); font-weight: 400; font-size: 36px; line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; }
 .card-photo img { display: block; width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; margin: 4px 0 16px; }
+.card-photo video { display:block; width:100%; max-height:320px; border-radius:14px; margin:4px 0 16px; background:#02040a; }
+.delete-panel { display:grid; gap:15px; }
+.delete-warning { display:flex; gap:12px; align-items:flex-start; padding:15px; border:1px solid rgba(255,145,165,.2); border-radius:16px; background:rgba(120,25,48,.12); }
+.delete-symbol { display:grid; place-items:center; flex:none; width:36px; height:36px; border-radius:12px; background:rgba(255,130,155,.1); color:#ffb2c0; font-size:19px; }
+.delete-warning b { display:block; margin:1px 0 4px; color:#ffe4e9; font-size:14px; }
+.delete-warning p { margin:0; color:rgba(237,205,213,.72); font-size:12px; line-height:1.5; }
+.delete-actions { display:grid; grid-template-columns:1fr auto; gap:10px; }
+.delete-actions .btn { min-height:48px; }
+.delete-actions .btn.danger { border-color:rgba(255,130,155,.24); background:rgba(145,35,58,.16); }
+.verify-code { letter-spacing:.32em; text-align:center; font-size:24px !important; font-weight:700 !important; }
+.delete-kicker { margin:0 0 5px; color:#ffb7c5; font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; }
 .card-text { margin: 0 0 8px; white-space: pre-line; font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
 .card-author { margin: 10px 0 0; color: var(--mist); font-size: 13px; }
 
@@ -1008,7 +1019,7 @@ textarea { resize: vertical; }
 
   function showDelete(s) {
     const err = h("p", { class: "err", role: "alert" });
-    const send = h("button", { class: "btn danger", type: "button" }, "Прислать код");
+    const send = h("button", { class: "btn danger", type: "button" }, "Получить код");
     send.addEventListener("click", async () => {
       send.disabled = true;
       err.textContent = "";
@@ -1023,15 +1034,27 @@ textarea { resize: vertical; }
     });
     setDlg("form",
       closeBtn(),
-      h("h2", { class: "card-title", id: "dlgTitle", text: "Удалить звезду?" }),
-      h("p", { class: "card-text", text: "«" + s.title + "» исчезнет с неба навсегда. Чтобы подтвердить, мы пришлём код тебе в Телеграм." }),
-      err,
-      h("div", { class: "row" }, send, h("button", { class: "btn", type: "button", onclick: () => showView(s) }, "Не удалять"))
+      h("div", { class: "delete-panel" },
+        h("p", { class: "delete-kicker", text: "Управление воспоминанием" }),
+        h("h2", { class: "card-title", id: "dlgTitle", text: "Удалить звезду?" }),
+        h("div", { class: "delete-warning" },
+          h("span", { class: "delete-symbol", text: "!" }),
+          h("div", {},
+            h("b", { text: cleanDisplayText(s.title, "Это воспоминание") }),
+            h("p", { text: "Звезда исчезнет с неба. После подтверждения восстановить её будет нельзя." })
+          )
+        ),
+        h("p", { class: "card-text", text: "Для защиты мы отправим одноразовый код подтверждения в твой Telegram. Второй администратор также получит уведомление об удалении." }),
+        err,
+        h("div", { class: "delete-actions" },
+          send,
+          h("button", { class: "btn", type: "button", onclick: () => showView(s) }, "Отмена"))
+      )
     );
   }
 
   function askCode(s) {
-    const iCode = h("input", { id: "f-code", type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "6", placeholder: "000000" });
+    const iCode = h("input", { id: "f-code", class: "verify-code", type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "6", placeholder: "••••••" });
     const err = h("p", { class: "err", role: "alert" });
     const del = h("button", { class: "btn danger", type: "submit" }, "Удалить навсегда");
     const onSubmit = async (e) => {
@@ -1060,9 +1083,10 @@ textarea { resize: vertical; }
     setDlg("form",
       closeBtn(),
       h("form", { onsubmit: onSubmit },
-        h("h2", { class: "card-title", id: "dlgTitle", text: "Введи код" }),
-        h("p", { class: "card-text", text: "Код пришёл тебе в Телеграм. Он действует 10 минут." }),
-        h("label", { for: "f-code" }, "Код из Телеграма"),
+        h("p", { class: "delete-kicker", text: "Последний шаг" }),
+        h("h2", { class: "card-title", id: "dlgTitle", text: "Подтверди удаление" }),
+        h("p", { class: "card-text", text: "Код пришёл тебе в Telegram. Он действует 10 минут." }),
+        h("label", { for: "f-code" }, "Одноразовый код"),
         iCode,
         err,
         h("div", { class: "row" }, del, h("button", { class: "btn", type: "button", onclick: () => showView(s) }, "Отмена")))
