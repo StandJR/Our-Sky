@@ -382,22 +382,7 @@ textarea { resize: vertical; }
   <div class="gate-in">
     <h2>Наше небо</h2>
     <p id="gateMsg">Наше небо хранит воспоминания. Можно войти или просто посмотреть.</p>
-    <div class="row" style="justify-content:center">
-      <button class="btn primary" id="guestBtn" type="button">Войти как гость</button>
-    </div>
-    <details id="gateLogin">
-      <summary>Войти по почте и паролю</summary>
-      <form id="loginForm">
-        <label for="g-email">Почта</label>
-        <input id="g-email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false">
-        <label for="g-pass">Пароль</label>
-        <input id="g-pass" type="password" autocomplete="current-password">
-        <p class="err" id="gateErr" role="alert"></p>
-        <div class="row">
-          <button class="btn primary" type="submit">Войти</button>
-        </div>
-     </form>
-    </details>
+    <p class="err" id="gateErr" role="alert"></p>
   </div>
 </section>
 
@@ -1047,30 +1032,18 @@ textarea { resize: vertical; }
       } catch (_) { /* покажем обычный вход */ }
       history.replaceState(null, "", location.pathname + location.search);
     }
+    // Вне Telegram приложение открывается автоматически как гость.
+    // Администраторские права выдаются только после серверной проверки Telegram initData + chat_id.
     const { data } = await sb.auth.getSession();
-    if (data.session) await setSession(data.session);
-    else showGate();
+    if (data.session) await sb.auth.signOut();
+    session = null;
+    isGuest = true;
+    isMember = false;
+    await start();
     sb.auth.onAuthStateChange((_ev, s) => setSession(s));
 
     document.addEventListener("visibilitychange", () => { if (!document.hidden && (session || isGuest)) loadStars(); });
   }
-
-  /* ---------- Форма входа ---------- */
-  const gErr = $("gateErr");
-  $("guestBtn").addEventListener("click", async () => {
-    if (!sb) { showGate("Не удалось подключиться к базе."); return; }
-    isGuest = true;
-    isMember = false;
-    await start();
-  });
-  $("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    gErr.textContent = "";
-    if (!sb) { gErr.textContent = "Сайт ещё не подключён к базе."; return; }
-    const { error } = await sb.auth.signInWithPassword({ email: $("g-email").value.trim(), password: $("g-pass").value });
-    if (error) gErr.textContent = "Неверная почта или пароль.";
-  });
-
 
   boot();
 })();
