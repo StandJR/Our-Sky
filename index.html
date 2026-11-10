@@ -395,14 +395,8 @@ textarea { resize: vertical; }
         <p class="err" id="gateErr" role="alert"></p>
         <div class="row">
           <button class="btn primary" type="submit">Войти</button>
-          <button class="btn" type="button" id="mkLink">Сделать ссылку для входа</button>
         </div>
-        <div id="linkBox" hidden>
-          <label for="g-link">Ссылка для входа (отправь только тому, чья это почта)</label>
-          <input id="g-link" type="text" readonly>
-          <div class="row"><button class="btn" type="button" id="copyLink">Скопировать</button></div>
-        </div>
-      </form>
+     </form>
     </details>
   </div>
 </section>
@@ -542,7 +536,7 @@ textarea { resize: vertical; }
   const createBody = (s, born) => {
     const isFirst = s.id === "first";
     const hs = hash(s.id);
-    const dateValue = typeof s.happened_on === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(s.happened_on)
+    const dateValue = typeof s.happened_on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.happened_on)
       ? s.happened_on : (isFirst ? FIRST.date : "");
     const dateLabel = dateValue
       ? dateValue.slice(8, 10) + "." + dateValue.slice(5, 7) + "." + dateValue.slice(2, 4)
@@ -615,7 +609,7 @@ textarea { resize: vertical; }
         b.el.style.setProperty("--star-color", isFirst ? "#ffd58a" : (s.star_type === "gold" ? "#ffd58a" : "#e8efff"));
         b.el.style.setProperty("--star-glow", isFirst || s.star_type === "gold" ? "rgba(255, 190, 92, .68)" : "rgba(190, 215, 255, .48)");
         const dateValue = typeof s.happened_on === "string" ? s.happened_on : "";
-        const dateLabel = /^\\d{4}-\\d{2}-\\d{2}$/.test(dateValue)
+        const dateLabel = /^\d{4}-\d{2}-\d{2}$/.test(dateValue)
           ? dateValue.slice(8, 10) + "." + dateValue.slice(5, 7) + "." + dateValue.slice(2, 4)
           : "";
         b.el.setAttribute("aria-label", (s.title || "Воспоминание") + ", " + dateLabel);
@@ -736,7 +730,7 @@ textarea { resize: vertical; }
     // Защита от null/пустых значений, которые могут прийти из старых записей БД.
     const title = typeof s.title === "string" && s.title.trim()
       ? s.title.trim() : (isFirst ? (FIRST.title || "Всё началось") : "Воспоминание");
-    const date = typeof s.happened_on === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(s.happened_on)
+    const date = typeof s.happened_on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.happened_on)
       ? s.happened_on : (isFirst ? (FIRST.date || CFG.START_DATE || "2026-11-03") : "");
     const body = typeof s.body === "string" ? s.body.trim() : "";
     const photo = h("div", { class: "card-photo" });
@@ -1070,20 +1064,7 @@ textarea { resize: vertical; }
     const { error } = await sb.auth.signInWithPassword({ email: $("g-email").value.trim(), password: $("g-pass").value });
     if (error) gErr.textContent = "Неверная почта или пароль.";
   });
-  $("mkLink").addEventListener("click", () => {
-    const e = $("g-email").value.trim(), p = $("g-pass").value;
-    if (!e || !p) { gErr.textContent = "Введи почту и пароль того, для кого делаешь ссылку."; return; }
-    gErr.textContent = "";
-    $("g-link").value = location.origin + location.pathname + "#in=" + enc(JSON.stringify({ e, p }));
-    $("linkBox").hidden = false;
-    $("g-link").select();
-  });
-  $("copyLink").addEventListener("click", async () => {
-    const el = $("g-link");
-    el.select();
-    try { await navigator.clipboard.writeText(el.value); toast("Ссылка скопирована"); }
-    catch (_) { toast("Выдели ссылку и скопируй вручную"); }
-  });
+
 
   boot();
 })();
