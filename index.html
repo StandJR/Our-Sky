@@ -530,8 +530,8 @@ textarea { resize: vertical; }
     const dateValue = typeof s.happened_on === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(s.happened_on)
       ? s.happened_on : (isFirst ? FIRST.date : "");
     const dateLabel = dateValue
-      ? parseDay(dateValue).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }).replace(".", "").toUpperCase()
-      : "ДАТА?";
+      ? dateValue.slice(8, 10) + "." + dateValue.slice(5, 7) + "." + dateValue.slice(2, 4)
+      : "";
     const el = h("button", { class: "star" + (isFirst ? " first" : "") + (born ? " born" : ""), type: "button", "aria-label": (s.title || "Воспоминание") + ", " + dateLabel },
       h("i", { "aria-hidden": "true" }),
       h("span", { class: "star-date", "aria-hidden": "true", text: dateLabel })
@@ -594,9 +594,9 @@ textarea { resize: vertical; }
       if (b) {
         b.data = s;
         const dateValue = typeof s.happened_on === "string" ? s.happened_on : "";
-        const dateLabel = dateValue
-          ? parseDay(dateValue).toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }).replace(".", "").toUpperCase()
-          : "ДАТА?";
+        const dateLabel = /^\\d{4}-\\d{2}-\\d{2}$/.test(dateValue)
+          ? dateValue.slice(8, 10) + "." + dateValue.slice(5, 7) + "." + dateValue.slice(2, 4)
+          : "";
         b.el.setAttribute("aria-label", (s.title || "Воспоминание") + ", " + dateLabel);
         const marker = b.el.querySelector(".star-date");
         if (marker) marker.textContent = dateLabel;
