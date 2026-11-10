@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0920">
+<title>Наше небо</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marck+Script&family=Nunito:wght@400;600;700&display=swap">
+<style>
+/* Макет: наверху название и счётчик дней, ниже поле, где звёзды медленно дрейфуют,
+   внизу кнопка «+». Звезда это воспоминание, нажатие открывает карточку. */
+:root {
+  --sky-top: #0a0920;
+  --sky-mid: #1c1245;
+  --sky-low: #40204f;
+  --glow: #ff8fb1;
+  --gold: #ffd9a0;
+  --cream: #fff3e8;
+  --mist: rgba(255, 243, 232, 0.68);
+  --card: #171038;
+  --card-edge: rgba(255, 217, 160, 0.22);
+  --font-display: "Marck Script", "Segoe Script", "Brush Script MT", cursive;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { height: 100%; background: var(--sky-top); -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  height: 100dvh;
+  background-color: var(--sky-top);
+  color: var(--cream);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+}
+
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(120% 55% at 50% 108%, rgba(255, 143, 177, 0.3), transparent 62%),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+}
+#bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+.app { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
+
+header { text-align: center; flex: none; }
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(40px, 12vw, 60px);
+  line-height: 1.05;
+  text-shadow: 0 0 30px rgba(255, 143, 177, 0.5);
+}
+.since { margin: 4px 0 0; color: var(--mist); font-size: 14px; letter-spacing: 0.02em; }
+.count { margin: 10px 0 0; display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+.count b { font-weight: 700; font-size: clamp(36px, 10vw, 50px); line-height: 1; font-variant-numeric: tabular-nums; color: var(--gold); }
+.count span { font-family: var(--font-display); font-size: clamp(24px, 7vw, 30px); }
+.detail { margin: 2px 0 0; color: var(--mist); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* Поле со звёздами */
+.field { position: relative; flex: 1; min-height: 0; touch-action: manipulation; }
+
+.star {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--c, var(--gold));
+  filter: drop-shadow(0 0 7px currentColor);
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+.star i {
+  display: block;
+  width: var(--s, 22px);
+  height: var(--s, 22px);
+  background: currentColor;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: twinkle 3.6s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+.star:focus-visible { outline: 2px solid var(--cream); outline-offset: -4px; border-radius: 50%; }
+@media (hover: hover) { .star:hover { filter: drop-shadow(0 0 12px currentColor) brightness(1.2); } }
+
+.star.first { --c: var(--glow); width: 64px; height: 64px; margin: -32px 0 0 -32px; }
+.star.first i { --s: 34px; animation: beat 2.6s ease-in-out infinite; }
+
+.star.born i { animation: born 1.5s ease-out both, twinkle 3.6s ease-in-out 1.5s infinite; animation-delay: 0s, 1.5s; }
+
+@keyframes twinkle { 0%, 100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(0.76); opacity: 0.6; } }
+@keyframes beat { 0%, 100% { transform: scale(1); } 14% { transform: scale(1.14); } 28% { transform: scale(1); } 42% { transform: scale(1.1); } 70% { transform: scale(1); } }
+@keyframes born { 0% { transform: scale(0.1) rotate(-90deg); opacity: 0; } 55% { transform: scale(2.2) rotate(0); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
+.dock { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 4px; }
+.add {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 217, 160, 0.4);
+  background: radial-gradient(circle at 50% 40%, rgba(255, 143, 177, 0.55), rgba(255, 143, 177, 0.16));
+  color: var(--cream);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 0 28px rgba(255, 143, 177, 0.4);
+}
+.add svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.add:focus-visible, .btn:focus-visible, .close:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
+.dock span { font-size: 13px; color: var(--mist); }
+
+/* Вход */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px max(16px, env(safe-area-inset-left, 0px));
+  overflow: auto;
+}
+.gate-in { width: min(100%, 420px); text-align: center; }
+.gate h2 { margin: 0 0 8px; font-family: var(--font-display); font-weight: 400; font-size: 52px; line-height: 1.05; text-shadow: 0 0 30px rgba(255, 143, 177, 0.5); }
+.gate p { margin: 0 0 18px; color: var(--mist); }
+.gate details { text-align: left; border-top: 1px solid var(--card-edge); padding-top: 14px; }
+.gate summary { cursor: pointer; color: var(--mist); font-size: 14px; text-align: center; }
+
+/* Карточки и формы */
+dialog {
+  position: fixed;
+  width: min(100%, 520px);
+  max-width: 100%;
+  max-height: 90vh;
+  max-height: 90dvh;
+  margin: auto auto 0;
+  padding: 26px 22px calc(26px + env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  border: 1px solid var(--card-edge);
+  border-radius: 22px 22px 0 0;
+  background: var(--card);
+  color: var(--cream);
+}
+dialog[open] { animation: rise 0.35s ease-out; }
+dialog::backdrop { background: rgba(6, 4, 20, 0.72); backdrop-filter: blur(3px); }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (min-width: 700px) { dialog { margin: auto; border-radius: 22px; padding-bottom: 26px; } }
+dialog form { margin: 0; }
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--cream);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.card-date { margin: 0 52px 4px 0; color: var(--gold); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+.card-title { margin: 0 52px 12px 0; font-family: var(--font-display); font-weight: 400; font-size: 36px; line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; }
+.card-photo img { display: block; width: 100%; max-height: 320px; object-fit: cover; border-radius: 14px; margin: 4px 0 16px; }
+.card-text { margin: 0 0 8px; white-space: pre-line; font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
+.card-author { margin: 10px 0 0; color: var(--mist); font-size: 13px; }
+
+label { display: block; margin: 14px 0 6px; font-size: 13px; color: var(--mist); }
+label.check { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+input[type="text"], input[type="date"], input[type="email"], input[type="password"], textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--card-edge);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cream);
+  font: inherit;
+  font-size: 16px;
+}
+input[type="file"] { width: 100%; font: inherit; font-size: 14px; color: var(--mist); }
+input:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+textarea { resize: vertical; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.btn {
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--card-edge);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--cream);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn.primary { background: linear-gradient(135deg, #ff8fb1, #ffb27a); color: #2a1030; border-color: transparent; }
+.btn.danger { color: #ffa3b0; }
+.btn[disabled] { opacity: 0.55; cursor: default; }
+.err { margin: 10px 0 0; min-height: 1.2em; color: #ffb3bd; font-size: 14px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  max-width: min(90vw, 420px);
+  padding: 12px 18px;
+  border: 1px solid var(--card-edge);
+  border-radius: 16px;
+  background: var(--card);
+  text-align: center;
+  font-size: 15px;
+  opacity: 0;
+  transform: translate(-50%, 20px);
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<div class="app" id="app" hidden>
+  <header>
+    <h1>Наше небо</h1>
+    <p class="since" id="since"></p>
+    <p class="count"><b id="days">0</b><span id="daysWord">дней</span></p>
+    <p class="detail" id="detail"></p>
+  </header>
+  <div class="field" id="field" role="group" aria-label="Звёзды с нашими воспоминаниями"></div>
+  <div class="dock">
+    <button class="add" id="addBtn" type="button" aria-label="Добавить звезду">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
+    </button>
+    <span>Добавить звезду</span>
+  </div>
+</div>
+
+<section class="gate" id="gate" hidden>
+  <div class="gate-in">
+    <h2>Наше небо</h2>
+    <p id="gateMsg">Это личное небо для двоих. Открой свою ссылку для входа, и оно появится.</p>
+    <details id="gateLogin">
+      <summary>Войти по почте и паролю</summary>
+      <form id="loginForm">
+        <label for="g-email">Почта</label>
+        <input id="g-email" type="email" autocomplete="username" autocapitalize="off" spellcheck="false">
+        <label for="g-pass">Пароль</label>
+        <input id="g-pass" type="password" autocomplete="current-password">
+        <p class="err" id="gateErr" role="alert"></p>
+        <div class="row">
+          <button class="btn primary" type="submit">Войти</button>
+          <button class="btn" type="button" id="mkLink">Сделать ссылку для входа</button>
+        </div>
+        <div id="linkBox" hidden>
+          <label for="g-link">Ссылка для входа (отправь только тому, чья это почта)</label>
+          <input id="g-link" type="text" readonly>
+          <div class="row"><button class="btn" type="button" id="copyLink">Скопировать</button></div>
+        </div>
+      </form>
+    </details>
+  </div>
+</section>
+
+<dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
+<script src="config.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const CFG = window.CONFIG || {};
+  const FIRST = CFG.FIRST_STAR || { title: "Всё началось", date: CFG.START_DATE || "2026-11-03", text: "" };
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (id) => document.getElementById(id);
+
+  /* ---------- Мелкие помощники ---------- */
+  const ymd = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const parseDay = (s) => { const [y, m, d] = String(s).split("-").map(Number); return new Date(y, m - 1, d); };
+  const fmtShort = (s) => parseDay(s).toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+  const fmtFull = (s) => parseDay(s).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+  const plural = (n, f) => {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return f[2];
+    if (b > 1 && b < 5) return f[1];
+    if (b === 1) return f[0];
+    return f[2];
+  };
+  const hash = (str) => {
+    let x = 2166136261;
+    for (let i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 16777619); }
+    return x >>> 0;
+  };
+  const enc = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const dec = (s) => {
+    s = s.replace(/-/g, "+").replace(/_/g, "/");
+    while (s.length % 4) s += "=";
+    return new TextDecoder().decode(Uint8Array.from(atob(s), (c) => c.charCodeAt(0)));
+  };
+
+  // Создание элементов без innerHTML: чужой текст всегда попадает как текст
+  const h = (tag, props = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === "class") el.className = v;
+      else if (k === "text") el.textContent = v;
+      else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+      else if (v === true) el.setAttribute(k, "");
+      else if (v !== false && v != null) el.setAttribute(k, v);
+    }
+    kids.flat().forEach((c) => { if (c != null && c !== false) el.append(c); });
+    return el;
+  };
+
+  let toastTimer = null;
+  const toast = (msg) => {
+    const el = $("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 4200);
+  };
+
+  /* ---------- Счётчик ---------- */
+  const since = parseDay(CFG.START_DATE || "2026-11-03");
+  $("since").textContent = "Мы вместе с " + fmtShort(CFG.START_DATE || "2026-11-03");
+  const tick = () => {
+    const ms = Math.max(0, Date.now() - since.getTime());
+    const days = Math.floor(ms / 864e5);
+    $("days").textContent = days;
+    $("daysWord").textContent = plural(days, ["день", "дня", "дней"]);
+    $("detail").textContent = "и " + (Math.floor(ms / 36e5) % 24) + " ч " + (Math.floor(ms / 6e4) % 60) + " мин";
+  };
+  tick();
+  setInterval(tick, 15000);
+
+  /* ---------- Звёздный фон ---------- */
+  const cv = $("bg");
+  const ctx = cv.getContext("2d");
+  let dots = [], cw = 0, ch = 0;
+  const initCanvas = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cw = window.innerWidth; ch = window.innerHeight;
+    cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.min(170, Math.round(cw * ch / 7000));
+    dots = Array.from({ length: n }, () => ({
+      x: Math.random() * cw, y: Math.random() * ch,
+      r: Math.random() * 1.2 + 0.3, a: Math.random() * 0.5 + 0.35,
+      s: Math.random() * 1.5 + 0.5, p: Math.random() * 6.28
+    }));
+  };
+  const drawBg = (ts) => {
+    ctx.clearRect(0, 0, cw, ch);
+    const t = ts / 1000;
+    for (const d of dots) {
+      ctx.globalAlpha = reduce ? d.a : d.a * (0.65 + 0.35 * Math.sin(t * d.s + d.p));
+      ctx.fillStyle = d.r > 1.1 ? "#ffe9c9" : "#ffffff";
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, 6.283);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (!reduce) requestAnimationFrame(drawBg);
+  };
+  initCanvas();
+  if (reduce) drawBg(0); else requestAnimationFrame(drawBg);
+  let lastW = window.innerWidth;
+  window.addEventListener("resize", () => {
+    if (window.innerWidth === lastW) return;
+    lastW = window.innerWidth;
+    initCanvas();
+    if (reduce) drawBg(0);
+  });
+
+  /* ---------- Дрейфующие звёзды ---------- */
+  const field = $("field");
+  const bodies = new Map();
+  const COLORS = ["#ffd9a0", "#fff3e8", "#ffc2d4", "#ffe6b3", "#ffd0a8"];
+  const EDGE = 30;
+  let fw = 0, fh = 0, loaded = false, lastTs = 0;
+
+  const measure = () => {
+    const r = field.getBoundingClientRect();
+    fw = r.width; fh = r.height;
+    for (const b of bodies.values()) {
+      b.x = Math.min(Math.max(b.x, EDGE), Math.max(EDGE, fw - EDGE));
+      b.y = Math.min(Math.max(b.y, EDGE), Math.max(EDGE, fh - EDGE));
+      place(b);
+    }
+  };
+  const place = (b) => { b.el.style.transform = "translate3d(" + b.x.toFixed(1) + "px," + b.y.toFixed(1) + "px,0)"; };
+
+  const createBody = (s, born) => {
+    const isFirst = s.id === "first";
+    const hs = hash(s.id);
+    const el = h("button", { class: "star" + (isFirst ? " first" : "") + (born ? " born" : ""), type: "button", "aria-label": s.title }, h("i", { "aria-hidden": "true" }));
+    if (!isFirst) {
+      el.style.setProperty("--s", (18 + hs % 9) + "px");
+      el.style.setProperty("--c", COLORS[hs % COLORS.length]);
+    }
+    el.style.setProperty("--d", ((hs % 36) / 10).toFixed(1) + "s");
+    const b = {
+      id: s.id, el, data: s, hold: false,
+      x: EDGE + Math.random() * Math.max(1, fw - 2 * EDGE),
+      y: EDGE + Math.random() * Math.max(1, fh - 2 * EDGE),
+      a: Math.random() * 6.283,
+      v: (isFirst ? 5 : 7) + Math.random() * 9
+    };
+    const stop = () => { b.hold = true; };
+    const go = () => { b.hold = el.matches(":hover"); };
+    el.addEventListener("pointerenter", stop);
+    el.addEventListener("pointerdown", stop);
+    el.addEventListener("pointerup", go);
+    el.addEventListener("pointercancel", go);
+    el.addEventListener("pointerleave", () => { b.hold = false; });
+    el.addEventListener("click", () => showView(b.data));
+    field.append(el);
+    bodies.set(s.id, b);
+    place(b);
+    return b;
+  };
+
+  const step = (ts) => {
+    const dt = Math.min(0.05, (ts - lastTs) / 1000 || 0);
+    lastTs = ts;
+    if (!dlg.open && fw > 0) {
+      for (const b of bodies.values()) {
+        if (b.hold) continue;
+        b.a += (Math.random() - 0.5) * 0.7 * dt;
+        b.x += Math.cos(b.a) * b.v * dt;
+        b.y += Math.sin(b.a) * b.v * dt;
+        if (b.x < EDGE) { b.x = EDGE; b.a = Math.PI - b.a; }
+        else if (b.x > fw - EDGE) { b.x = fw - EDGE; b.a = Math.PI - b.a; }
+        if (b.y < EDGE) { b.y = EDGE; b.a = -b.a; }
+        else if (b.y > fh - EDGE) { b.y = fh - EDGE; b.a = -b.a; }
+        place(b);
+      }
+    }
+    requestAnimationFrame(step);
+  };
+
+  const syncStars = (list) => {
+    const ids = new Set(list.map((s) => s.id));
+    for (const [id, b] of [...bodies]) {
+      if (id !== "first" && !ids.has(id)) { b.el.remove(); bodies.delete(id); }
+    }
+    for (const s of list) {
+      const b = bodies.get(s.id);
+      if (b) { b.data = s; b.el.setAttribute("aria-label", s.title); }
+      else createBody(s, loaded);
+    }
+    loaded = true;
+  };
+
+  if (typeof ResizeObserver === "function") new ResizeObserver(measure).observe(field);
+
+  /* ---------- Окно с карточкой ---------- */
+  const dlg = $("dlg");
+  let mode = "view";
+  const setDlg = (m, ...nodes) => {
+    mode = m;
+    dlg.replaceChildren(...nodes);
+    if (!dlg.open) dlg.showModal();
+    dlg.scrollTop = 0;
+  };
+  const closeBtn = () => h("button", { class: "close", type: "button", "aria-label": "Закрыть", onclick: () => dlg.close() }, "×");
+  dlg.addEventListener("click", (e) => {
+    if (mode !== "view") return;
+    const r = dlg.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+  });
+
+  const ERR = {
+    no_telegram: "Телеграм ещё не подключён к твоему профилю.",
+    wait: "Код уже отправлен. Подожди полминуты и запроси ещё раз.",
+    expired: "Код устарел. Запроси новый.",
+    too_many: "Слишком много попыток. Запроси новый код.",
+    telegram_failed: "Телеграм не принял сообщение. Проверь, что ты нажал(а) Start у бота.",
+    not_found: "Такой звезды уже нет."
+  };
+  const errText = (x) => {
+    if (x && x.error === "wrong_code") return "Неверный код. Осталось попыток: " + x.left + ".";
+    if (x && ERR[x.error]) return ERR[x.error];
+    if (x && typeof x.message === "string" && x.expected) return x.message;
+    return "Не получилось. Проверь интернет и попробуй ещё раз.";
+  };
+
+  const attachPhoto = async (box, path, alt) => {
+    try {
+      const { data } = await sb.storage.from("photos").createSignedUrl(path, 3600);
+      if (!data || !data.signedUrl) return;
+      const img = new Image();
+      img.alt = alt;
+      img.onload = () => box.append(img);
+      img.src = data.signedUrl;
+    } catch (_) { /* фото просто не покажется */ }
+  };
+
+  function showView(s) {
+    const isFirst = s.id === "first";
+    const photo = h("div", { class: "card-photo" });
+    setDlg("view",
+      closeBtn(),
+      h("p", { class: "card-date", text: fmtFull(s.happened_on) }),
+      h("h2", { class: "card-title", id: "dlgTitle", text: s.title }),
+      photo,
+      s.body ? h("p", { class: "card-text", text: s.body }) : null,
+      s.author_name ? h("p", { class: "card-author", text: "Автор: " + s.author_name }) : null,
+      isFirst ? null : h("div", { class: "row" },
+        h("button", { class: "btn", type: "button", onclick: () => showForm(s) }, "Изменить"),
+        h("button", { class: "btn danger", type: "button", onclick: () => showDelete(s) }, "Удалить"))
+    );
+    if (s.photo_path) attachPhoto(photo, s.photo_path, s.title);
+  }
+
+  const compress = async (file, max = 1600) => {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k);
+      c.height = Math.round(img.naturalHeight * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("photo"))), "image/jpeg", 0.82));
+    } finally { URL.revokeObjectURL(url); }
+  };
+
+  function showForm(s) {
+    const editing = !!s;
+    const today = ymd(new Date());
+    const iDate = h("input", { id: "f-date", type: "date", required: true, max: today, value: editing ? s.happened_on : today });
+    const iTitle = h("input", { id: "f-title", type: "text", maxlength: "80", required: true, autocomplete: "off", placeholder: "Например, наш первый вечер", value: editing ? s.title : "" });
+    const iBody = h("textarea", { id: "f-body", rows: "5", maxlength: "4000", placeholder: "Что тогда было? Что запомнилось?" });
+    iBody.value = editing ? s.body : "";
+    const iFile = h("input", { id: "f-photo", type: "file", accept: "image/*" });
+    const iRm = h("input", { id: "f-rm", type: "checkbox" });
+    const err = h("p", { class: "err", role: "alert" });
+    const save = h("button", { class: "btn primary", type: "submit" }, editing ? "Сохранить" : "Добавить звезду");
+
+    const onSubmit = async (e) => {
+      e.preventDefault();
+      save.disabled = true;
+      err.textContent = "";
+      try {
+        const title = iTitle.value.trim();
+        if (!title) { const x = new Error("Напиши заголовок."); x.expected = true; throw x; }
+        let photo_path = editing ? s.photo_path : null;
+        if (iRm.checked) photo_path = null;
+        const f = iFile.files[0];
+        if (f) {
+          const blob = await compress(f);
+          const path = session.user.id + "/" + crypto.randomUUID() + ".jpg";
+          const up = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg" });
+          if (up.error) throw up.error;
+          photo_path = path;
+        }
+        const row = { title, body: iBody.value.trim(), happened_on: iDate.value, photo_path };
+        let newId;
+        if (editing) {
+          const r = await sb.from("stars").update(row).eq("id", s.id);
+          if (r.error) throw r.error;
+        } else {
+          row.author_name = people[session.user.id] || null;
+          const r = await sb.from("stars").insert(row).select().single();
+          if (r.error) throw r.error;
+          newId = r.data.id;
+        }
+        await loadStars();
+        dlg.close();
+        toast(editing ? "Сохранено" : "Новая звезда на небе");
+      } catch (x) {
+        err.textContent = errText(x);
+        save.disabled = false;
+      }
+    };
+
+    setDlg("form",
+      closeBtn(),
+      h("form", { onsubmit: onSubmit },
+        h("h2", { class: "card-title", id: "dlgTitle", text: editing ? "Изменить звезду" : "Новая звезда" }),
+        h("label", { for: "f-date" }, "Когда это было"),
+        iDate,
+        h("label", { for: "f-title" }, "Заголовок"),
+        iTitle,
+        h("label", { for: "f-body" }, "Что запомнилось"),
+        iBody,
+        h("label", { for: "f-photo" }, "Фото (необязательно)"),
+        iFile,
+        editing && s.photo_path ? h("label", { class: "check", for: "f-rm" }, iRm, "Убрать текущее фото") : null,
+        err,
+        h("div", { class: "row" },
+          save,
+          h("button", { class: "btn", type: "button", onclick: () => (editing ? showView(s) : dlg.close()) }, "Отмена")))
+    );
+  }
+
+  const api = async (body) => {
+    const { data, error } = await sb.functions.invoke("delete-star", { body });
+    if (error) throw error;
+    return data || { ok: false };
+  };
+
+  function showDelete(s) {
+    const err = h("p", { class: "err", role: "alert" });
+    const send = h("button", { class: "btn danger", type: "button" }, "Прислать код");
+    send.addEventListener("click", async () => {
+      send.disabled = true;
+      err.textContent = "";
+      try {
+        const r = await api({ action: "request", star_id: s.id });
+        if (!r.ok) throw r;
+        askCode(s);
+      } catch (x) {
+        err.textContent = errText(x);
+        send.disabled = false;
+      }
+    });
+    setDlg("form",
+      closeBtn(),
+      h("h2", { class: "card-title", id: "dlgTitle", text: "Удалить звезду?" }),
+      h("p", { class: "card-text", text: "«" + s.title + "» исчезнет с неба навсегда. Чтобы подтвердить, мы пришлём код тебе в Телеграм." }),
+      err,
+      h("div", { class: "row" }, send, h("button", { class: "btn", type: "button", onclick: () => showView(s) }, "Не удалять"))
+    );
+  }
+
+  function askCode(s) {
+    const iCode = h("input", { id: "f-code", type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "6", placeholder: "000000" });
+    const err = h("p", { class: "err", role: "alert" });
+    const del = h("button", { class: "btn danger", type: "submit" }, "Удалить навсегда");
+    const onSubmit = async (e) => {
+      e.preventDefault();
+      del.disabled = true;
+      err.textContent = "";
+      try {
+        const r = await api({ action: "confirm", star_id: s.id, code: iCode.value });
+        if (!r.ok) throw r;
+        await loadStars();
+        dlg.close();
+        toast("Звезда удалена");
+      } catch (x) {
+        err.textContent = errText(x);
+        del.disabled = false;
+      }
+    };
+    setDlg("form",
+      closeBtn(),
+      h("form", { onsubmit: onSubmit },
+        h("h2", { class: "card-title", id: "dlgTitle", text: "Введи код" }),
+        h("p", { class: "card-text", text: "Код пришёл тебе в Телеграм. Он действует 10 минут." }),
+        h("label", { for: "f-code" }, "Код из Телеграма"),
+        iCode,
+        err,
+        h("div", { class: "row" }, del, h("button", { class: "btn", type: "button", onclick: () => showView(s) }, "Отмена")))
+    );
+    iCode.focus();
+  }
+
+  $("addBtn").addEventListener("click", () => showForm(null));
+
+  /* ---------- База и вход ---------- */
+  const configured = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && !/ВСТАВЬ/.test(CFG.SUPABASE_URL + CFG.SUPABASE_ANON_KEY));
+  const sb = configured && window.supabase
+    ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } })
+    : null;
+
+  let session = null, people = {}, channel = null, reloadTimer = null, started = false;
+
+  const showGate = (msg) => {
+    $("app").hidden = true;
+    $("gate").hidden = false;
+    if (msg) $("gateMsg").textContent = msg;
+  };
+
+  async function loadStars() {
+    const { data, error } = await sb.from("stars").select("*")
+      .order("happened_on", { ascending: true }).order("created_at", { ascending: true });
+    if (error) { toast("Не получилось загрузить звёзды. Проверь интернет."); return; }
+    syncStars(data || []);
+  }
+
+  const scheduleReload = () => {
+    clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(loadStars, 300);
+  };
+
+  async function start() {
+    $("gate").hidden = true;
+    $("app").hidden = false;
+    await new Promise((r) => requestAnimationFrame(r));
+    measure();
+    if (!bodies.has("first")) {
+      createBody({ id: "first", title: FIRST.title, happened_on: FIRST.date, body: FIRST.text, author_name: null, photo_path: null }, false);
+    }
+    if (!started) { started = true; requestAnimationFrame(step); }
+    try {
+      const r = await sb.from("people").select("user_id,name");
+      people = Object.fromEntries((r.data || []).map((p) => [p.user_id, p.name]));
+    } catch (_) { /* имена не критичны */ }
+    await loadStars();
+    if (!channel) {
+      channel = sb.channel("stars-live")
+        .on("postgres_changes", { event: "*", schema: "public", table: "stars" }, scheduleReload)
+        .subscribe();
+    }
+  }
+
+  const setSession = (s) => {
+    const same = session && s && session.user.id === s.user.id;
+    session = s;
+    if (same) return;
+    if (!s) {
+      if (channel) { sb.removeChannel(channel); channel = null; }
+      showGate();
+      return;
+    }
+    start();
+  };
+
+  async function boot() {
+    if (!configured) { showGate("Сайт ещё не подключён к базе. Открой SETUP.md и вставь ключи в config.js."); return; }
+    if (!sb) { showGate("Не загрузилась библиотека для связи с базой. Проверь интернет и обнови страницу."); return; }
+
+    const m = location.hash.match(/^#in=(.+)$/);
+    if (m) {
+      try {
+        const c = JSON.parse(dec(m[1]));
+        await sb.auth.signInWithPassword({ email: c.e, password: c.p });
+      } catch (_) { /* покажем обычный вход */ }
+      history.replaceState(null, "", location.pathname + location.search);
+    }
+    const { data } = await sb.auth.getSession();
+    setSession(data.session);
+    sb.auth.onAuthStateChange((_ev, s) => setSession(s));
+
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && session) loadStars(); });
+  }
+
+  /* ---------- Форма входа ---------- */
+  const gErr = $("gateErr");
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    gErr.textContent = "";
+    if (!sb) { gErr.textContent = "Сайт ещё не подключён к базе."; return; }
+    const { error } = await sb.auth.signInWithPassword({ email: $("g-email").value.trim(), password: $("g-pass").value });
+    if (error) gErr.textContent = "Неверная почта или пароль.";
+  });
+  $("mkLink").addEventListener("click", () => {
+    const e = $("g-email").value.trim(), p = $("g-pass").value;
+    if (!e || !p) { gErr.textContent = "Введи почту и пароль того, для кого делаешь ссылку."; return; }
+    gErr.textContent = "";
+    $("g-link").value = location.origin + location.pathname + "#in=" + enc(JSON.stringify({ e, p }));
+    $("linkBox").hidden = false;
+    $("g-link").select();
+  });
+  $("copyLink").addEventListener("click", async () => {
+    const el = $("g-link");
+    el.select();
+    try { await navigator.clipboard.writeText(el.value); toast("Ссылка скопирована"); }
+    catch (_) { toast("Выдели ссылку и скопируй вручную"); }
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
