@@ -1000,6 +1000,8 @@ textarea { resize: vertical; }
     if (!configured) { showGate("Сайт ещё не подключён к базе. Открой SETUP.md и вставь ключи в config.js."); return; }
     if (!sb) { showGate("Не загрузилась библиотека для связи с базой. Проверь интернет и обнови страницу."); return; }
 
+    // Ненавязчиво устанавливаем кнопку запуска Mini App в меню бота.
+    sb.functions.invoke("telegram-gateway", { body: { action: "configure-menu" } }).catch(() => {});
     const tgApp = window.Telegram && window.Telegram.WebApp;
     if (tgApp && typeof tgApp.initData === "string" && tgApp.initData.length) {
       try {
