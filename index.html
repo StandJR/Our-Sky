@@ -269,6 +269,55 @@ dialog .row .btn.primary {
   box-shadow: 0 5px 22px rgba(210, 174, 112, .16);
 }
 
+/* Новая форма воспоминания */
+.memory-form { display: grid; gap: 15px; }
+.memory-form > h2.card-title { margin-bottom: 0; }
+.memory-intro { margin: -8px 0 2px; color: rgba(205,218,240,.66); font-size: 13px; }
+.memory-section { padding: 15px; border: 1px solid rgba(190,210,245,.12); border-radius: 18px; background: rgba(255,255,255,.025); }
+.memory-section-title { display:flex; align-items:center; gap:9px; margin:0 0 12px; color:#e8eefb; font-size:13px; font-weight:700; letter-spacing:.025em; }
+.memory-section-title span { display:grid; place-items:center; width:25px; height:25px; border-radius:9px; background:rgba(190,210,245,.1); color:#dce7fb; font-size:12px; }
+.memory-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.memory-field { min-width:0; }
+.memory-field.full { grid-column:1 / -1; }
+.memory-field > label { display:block; margin:0 0 6px; color:#aebbd0; font-size:12px; }
+.memory-form input[type="text"], .memory-form input[type="date"], .memory-form textarea, .memory-form select {
+  width:100%; min-width:0; padding:12px 13px; border:1px solid rgba(180,202,238,.16);
+  border-radius:13px; background:rgba(2,6,14,.72); color:#f3f6ff; font:inherit; font-size:15px;
+  transition:border-color .22s, background .22s, box-shadow .22s;
+}
+.memory-form input:focus, .memory-form textarea:focus, .memory-form select:focus {
+  outline:none; border-color:rgba(211,225,250,.62); background:rgba(5,11,22,.96);
+  box-shadow:0 0 0 3px rgba(170,195,235,.09);
+}
+.memory-form textarea { min-height:112px; resize:vertical; }
+.memory-hint { margin:6px 1px 0; color:rgba(190,205,229,.52); font-size:11px; line-height:1.45; }
+.memory-toggle { display:flex !important; align-items:center; gap:11px; margin:0 !important; padding:12px 13px; border:1px solid rgba(190,210,245,.12); border-radius:14px; background:rgba(255,255,255,.025); }
+.memory-toggle input { width:18px; height:18px; accent-color:#d6e2f7; flex:none; }
+.memory-toggle-copy { display:grid; gap:2px; }
+.memory-toggle-copy b { color:#e8eefb; font-size:13px; font-weight:700; }
+.memory-toggle-copy small { color:rgba(190,205,229,.58); font-size:11px; }
+.memory-type { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.memory-type label { display:flex; align-items:center; justify-content:center; gap:8px; min-height:43px; margin:0; padding:9px; border:1px solid rgba(190,210,245,.14); border-radius:12px; background:rgba(255,255,255,.025); color:#c7d3e7; font-size:13px; cursor:pointer; }
+.memory-type input { accent-color:#d6e2f7; }
+.memory-upload { display:grid; gap:10px; }
+.memory-upload-pick { display:flex; align-items:center; justify-content:center; gap:10px; min-height:66px; padding:14px; border:1px dashed rgba(195,215,248,.3); border-radius:15px; background:rgba(170,195,235,.045); color:#dbe6fa; text-align:center; font-size:13px; cursor:pointer; transition:background .2s, border-color .2s, transform .2s; }
+.memory-upload-pick:active { transform:scale(.99); }
+.memory-upload-pick strong { display:block; font-size:13px; }
+.memory-upload-pick small { display:block; margin-top:2px; color:rgba(190,205,229,.58); font-size:11px; }
+.memory-file-input { position:absolute; width:1px !important; height:1px; opacity:0; overflow:hidden; clip:rect(0,0,0,0); }
+.memory-preview { overflow:hidden; border:1px solid rgba(190,210,245,.14); border-radius:14px; background:#030711; }
+.memory-preview:empty { display:none; }
+.memory-preview img, .memory-preview video { display:block; width:100%; max-height:250px; object-fit:contain; background:#02040a; }
+.memory-preview-note { padding:8px 10px; color:rgba(210,222,242,.72); font-size:11px; overflow-wrap:anywhere; }
+.memory-remove { display:flex !important; align-items:center; gap:8px; margin:0 !important; color:#f0b6c0 !important; font-size:12px !important; }
+.memory-remove input { accent-color:#f0a9b7; }
+.memory-actions { display:grid; grid-template-columns:1fr auto; gap:10px; margin-top:2px !important; }
+.memory-actions .btn { min-height:49px; }
+.memory-actions .btn.primary { border:0; }
+.memory-actions .btn:not(.primary) { padding-inline:17px; }
+@media (max-width:420px) { .memory-grid { grid-template-columns:1fr; } .memory-field.full { grid-column:auto; } .memory-section { padding:13px; } }
+@media (prefers-reduced-motion: reduce) { .memory-upload-pick { transition:none; } }
+
 .close {
   position: absolute;
   top: 10px;
@@ -646,15 +695,22 @@ textarea { resize: vertical; }
     return "Не получилось. Проверь интернет и попробуй ещё раз.";
   };
 
-  const attachPhoto = async (box, path, alt) => {
+  const isVideoPath = (path) => /\\.(mp4|mov|m4v|webm)$/i.test(String(path || ""));
+  const attachMedia = async (box, path, alt) => {
     try {
       const { data, error } = await sb.functions.invoke("get-star-photo", { body: { path } });
       if (error || !data || !data.url) return;
-      const img = new Image();
-      img.alt = alt;
-      img.onload = () => box.append(img);
-      img.src = data.url;
-    } catch (_) { /* фото просто не покажется */ }
+      if (isVideoPath(path)) {
+        const video = h("video", { controls: true, playsinline: true, preload: "metadata", "aria-label": alt });
+        video.src = data.url;
+        box.append(video);
+      } else {
+        const img = new Image();
+        img.alt = alt;
+        img.onload = () => box.append(img);
+        img.src = data.url;
+      }
+    } catch (_) { /* медиа просто не покажется */ }
   };
 
   async function telegramCall(action, payload = {}) {
@@ -758,7 +814,7 @@ textarea { resize: vertical; }
       telegramInitData ? commentsPanel(s) : null,
       ownerControls
     );
-    if (s.photo_path) attachPhoto(photo, s.photo_path, title);
+    if (s.photo_path) attachMedia(photo, s.photo_path, title);
   }
 
   const compress = async (file, max = 1600) => {
@@ -781,9 +837,9 @@ textarea { resize: vertical; }
     const today = ymd(new Date());
     const iDate = h("input", { id: "f-date", type: "date", required: true, max: today, value: editing ? s.happened_on : today });
     const iTitle = h("input", { id: "f-title", type: "text", maxlength: "80", required: true, autocomplete: "off", placeholder: "Например, наш первый вечер", value: editing ? s.title : "" });
-    const iBody = h("textarea", { id: "f-body", rows: "5", maxlength: "4000", placeholder: "Что тогда было? Что запомнилось?" });
-    iBody.value = editing ? s.body : "";
-    const iFile = h("input", { id: "f-photo", type: "file", accept: "image/*" });
+    const iBody = h("textarea", { id: "f-body", rows: "4", maxlength: "4000", placeholder: "Что тогда было? Что запомнилось?" });
+    iBody.value = editing ? (s.body || "") : "";
+    const iFile = h("input", { id: "f-photo", class: "memory-file-input", type: "file", accept: "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" });
     const iRm = h("input", { id: "f-rm", type: "checkbox" });
     const iPrivate = h("input", { id: "f-private", type: "checkbox" });
     iPrivate.checked = editing ? !!s.is_private : false;
@@ -791,6 +847,68 @@ textarea { resize: vertical; }
       h("option", { value: "silver" }, "Серебряная"),
       h("option", { value: "gold" }, "Золотая"));
     iType.value = editing ? (s.star_type || "silver") : "silver";
+    const preview = h("div", { class: "memory-preview", "aria-live": "polite" });
+    const fileNote = h("p", { class: "memory-hint", text: "JPG, PNG, WEBP или видео MP4. Максимум 50 МБ." });
+    const pickLabel = h("label", { class: "memory-upload-pick", for: "f-photo" },
+      h("span", { text: "＋" }),
+      h("span", {},
+        h("strong", { text: "Выбрать фото или видео" }),
+        h("small", { text: "Можно прикрепить один файл к воспоминанию" })
+      )
+    );
+    const removeCurrent = editing && s.photo_path
+      ? h("label", { class: "memory-remove" }, iRm, "Удалить прикреплённый файл")
+      : null;
+    let previewUrl = null;
+    const clearPreviewUrl = () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+    };
+    if (editing && s.photo_path) {
+      preview.append(h("p", { class: "memory-preview-note", text: "Сейчас прикреплено:" }));
+      attachMedia(preview, s.photo_path, "Текущий файл");
+    }
+    iFile.addEventListener("change", () => {
+      clearPreviewUrl();
+      preview.replaceChildren();
+      if (removeCurrent) iRm.checked = false;
+      const file = iFile.files && iFile.files[0];
+      if (!file) {
+        if (editing && s.photo_path && !iRm.checked) {
+          preview.append(h("p", { class: "memory-preview-note", text: "Сейчас прикреплено:" }));
+          attachMedia(preview, s.photo_path, "Текущий файл");
+        }
+        return;
+      }
+      const allowed = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime", "video/webm"];
+      if (!allowed.includes(file.type)) {
+        iFile.value = "";
+        err.textContent = "Выбери JPG, PNG, WEBP или видео MP4, MOV, WEBM.";
+        return;
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        iFile.value = "";
+        err.textContent = "Файл слишком большой. Максимальный размер — 50 МБ.";
+        return;
+      }
+      err.textContent = "";
+      previewUrl = URL.createObjectURL(file);
+      const media = file.type.startsWith("video/")
+        ? h("video", { controls: true, playsinline: true, preload: "metadata" })
+        : h("img", { alt: "Предпросмотр выбранного файла" });
+      media.src = previewUrl;
+      preview.append(media, h("p", { class: "memory-preview-note", text: file.name + " · " + (file.size / 1024 / 1024).toFixed(1) + " МБ" }));
+    });
+    if (removeCurrent) {
+      iRm.addEventListener("change", () => {
+        if (iRm.checked && !iFile.files.length) preview.replaceChildren();
+        else if (!iFile.files.length && s.photo_path) {
+          preview.replaceChildren(h("p", { class: "memory-preview-note", text: "Сейчас прикреплено:" }));
+          attachMedia(preview, s.photo_path, "Текущий файл");
+        }
+      });
+    }
+
     const err = h("p", { class: "err", role: "alert" });
     const save = h("button", { class: "btn primary", type: "submit" }, editing ? "Сохранить изменения" : "✦  Зажечь звезду");
 
@@ -803,11 +921,18 @@ textarea { resize: vertical; }
         if (!title) { const x = new Error("Напиши заголовок."); x.expected = true; throw x; }
         let photo_path = editing ? s.photo_path : null;
         if (iRm.checked) photo_path = null;
-        const f = iFile.files[0];
-        if (f) {
-          const blob = await compress(f);
-          const path = session.user.id + "/" + crypto.randomUUID() + ".jpg";
-          const up = await sb.storage.from("photos").upload(path, blob, { contentType: "image/jpeg" });
+        const file = iFile.files && iFile.files[0];
+        if (file) {
+          let blob = file;
+          let extension = file.name.split(".").pop().toLowerCase();
+          let contentType = file.type;
+          if (file.type.startsWith("image/")) {
+            blob = await compress(file);
+            extension = "jpg";
+            contentType = "image/jpeg";
+          }
+          const path = session.user.id + "/" + crypto.randomUUID() + "." + extension;
+          const up = await sb.storage.from("photos").upload(path, blob, { contentType, upsert: false });
           if (up.error) throw up.error;
           photo_path = path;
         }
@@ -815,7 +940,6 @@ textarea { resize: vertical; }
           title, body: iBody.value.trim(), happened_on: iDate.value, photo_path,
           is_private: iPrivate.checked, star_type: iType.value
         };
-        let newId;
         if (editing) {
           const r = await sb.from("stars").update(row).eq("id", s.id);
           if (r.error) throw r.error;
@@ -823,38 +947,57 @@ textarea { resize: vertical; }
           row.author_name = people[session.user.id] || null;
           const r = await sb.from("stars").insert(row).select().single();
           if (r.error) throw r.error;
-          newId = r.data.id;
         }
-        await loadStars();
+        try { await loadStars(); } catch (_) { /* сохранение уже выполнено */ }
+        clearPreviewUrl();
         dlg.close();
-        toast(editing ? "Сохранено" : "Новая звезда на небе");
+        toast(editing ? "Изменения сохранены" : "Новая звезда на небе");
       } catch (x) {
         err.textContent = errText(x);
         save.disabled = false;
       }
     };
 
-    setDlg("form",
-      closeBtn(),
-      h("form", { onsubmit: onSubmit },
-        h("h2", { class: "card-title", id: "dlgTitle", text: editing ? "Изменить звезду" : "Новая звезда" }),
-        h("label", { for: "f-date" }, "Когда это было"),
-        iDate,
-        h("label", { for: "f-title" }, "Заголовок"),
-        iTitle,
-        h("label", { for: "f-body" }, "Что запомнилось"),
-        iBody,
-        h("label", { for: "f-type" }, "Тип звезды"),
-        iType,
-        h("label", { class: "check", for: "f-private" }, iPrivate, "Личное воспоминание — видно только нам двоим"),
-        h("label", { for: "f-photo" }, "Фото (необязательно)"),
-        iFile,
-        editing && s.photo_path ? h("label", { class: "check", for: "f-rm" }, iRm, "Убрать текущее фото") : null,
-        err,
-        h("div", { class: "row" },
-          save,
-          h("button", { class: "btn", type: "button", onclick: () => (editing ? showView(s) : dlg.close()) }, "Отмена")))
+    const form = h("form", { class: "memory-form", onsubmit: onSubmit },
+      h("h2", { class: "card-title", id: "dlgTitle", text: editing ? "Изменить воспоминание" : "Новое воспоминание" }),
+      h("p", { class: "memory-intro", text: editing ? "Обнови детали — всё важное останется на своём месте." : "Сохрани момент, к которому захочется однажды вернуться." }),
+      h("section", { class: "memory-section" },
+        h("h3", { class: "memory-section-title" }, h("span", { text: "01" }), "Детали воспоминания"),
+        h("div", { class: "memory-grid" },
+          h("div", { class: "memory-field" }, h("label", { for: "f-date", text: "Дата" }), iDate),
+          h("div", { class: "memory-field" }, h("label", { for: "f-type", text: "Цвет звезды" }), iType),
+          h("div", { class: "memory-field full" }, h("label", { for: "f-title", text: "Название" }), iTitle),
+          h("div", { class: "memory-field full" }, h("label", { for: "f-body", text: "История" }), iBody,
+            h("p", { class: "memory-hint", text: "Можно оставить пустым или написать до 4000 символов." }))
+        )
+      ),
+      h("section", { class: "memory-section" },
+        h("h3", { class: "memory-section-title" }, h("span", { text: "02" }), "Фото или видео"),
+        h("div", { class: "memory-upload" }, iFile, pickLabel, preview, fileNote, removeCurrent)
+      ),
+      h("section", { class: "memory-section" },
+        h("h3", { class: "memory-section-title" }, h("span", { text: "03" }), "Видимость"),
+        h("label", { class: "memory-toggle", for: "f-private" },
+          iPrivate,
+          h("span", { class: "memory-toggle-copy" },
+            h("b", { text: "Личное воспоминание" }),
+            h("small", { text: "Видно только двум администраторам" })
+          )
+        )
+      ),
+      err,
+      h("div", { class: "row memory-actions" },
+        save,
+        h("button", { class: "btn", type: "button", onclick: () => (editing ? showView(s) : dlg.close()) }, "Отмена"))
     );
+    dlg.addEventListener("close", clearPreviewUrl, { once: true });
+    setDlg("form", closeBtn(), form);
+    if (!reduce) {
+      requestAnimationFrame(() => {
+        const firstInput = form.querySelector("#f-title");
+        if (firstInput) firstInput.focus({ preventScroll: true });
+      });
+    }
   }
 
   const api = async (body) => {
