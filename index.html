@@ -290,6 +290,17 @@ dialog .row .btn.primary {
 .card-text { margin: 0 0 8px; white-space: pre-line; font-size: 17px; line-height: 1.65; overflow-wrap: anywhere; }
 .card-author { margin: 10px 0 0; color: var(--mist); font-size: 13px; }
 
+.comments { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--card-edge); }
+.comments h3 { margin: 0 0 12px; font-size: 15px; letter-spacing: .02em; }
+.comment-list { display: grid; gap: 12px; margin-bottom: 16px; }
+.comment { padding: 11px 13px; border: 1px solid var(--card-edge); border-radius: 14px; background: rgba(255,255,255,.035); }
+.comment strong { display: block; margin-bottom: 3px; color: #dbe6fa; font-size: 13px; }
+.comment p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.comment-empty { color: var(--mist); font-size: 13px; }
+.comment-form textarea { min-height: 76px; margin-top: 4px; }
+.comment-form .btn { margin-top: 9px; }
+
+
 label { display: block; margin: 14px 0 6px; font-size: 13px; color: var(--mist); }
 label.check { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 input[type="text"], input[type="date"], input[type="email"], input[type="password"], textarea {
@@ -399,6 +410,7 @@ textarea { resize: vertical; }
 <dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8"></script>
 <script src="config.js"></script>
 <script>
@@ -658,6 +670,67 @@ textarea { resize: vertical; }
     } catch (_) { /* фото просто не покажется */ }
   };
 
+  async function telegramCall(action, payload = {}) {
+    if (!telegramInitData) throw new Error("Открой приложение через Telegram, чтобы использовать комментарии.");
+    const { data, error } = await sb.functions.invoke("telegram-gateway", {
+      body: { action, initData: telegramInitData, ...payload }
+    });
+    if (error) throw error;
+    if (!data || !data.ok) throw new Error(data?.error || "Не удалось выполнить действие.");
+    return data;
+  }
+
+  function commentsPanel(s) {
+    const first = s.id === "first";
+    const panel = h("section", { class: "comments" },
+      h("h3", { text: "Комментарии" })
+    );
+    const list = h("div", { class: "comment-list" },
+      h("p", { class: "comment-empty", text: "Загружаем комментарии…" })
+    );
+    const input = h("textarea", { rows: "3", maxlength: "1200", placeholder: "Оставить комментарий…" });
+    const send = h("button", { class: "btn primary", type: "button" }, "Отправить");
+    const error = h("p", { class: "err", role: "alert" });
+    const form = h("div", { class: "comment-form" },
+      h("label", {}, "Твой комментарий"), input, send, error
+    );
+    panel.append(list, form);
+    const target = first ? { is_first: true } : { star_id: s.id, is_first: false };
+    const refresh = async () => {
+      try {
+        const result = await telegramCall("comments-list", target);
+        list.replaceChildren();
+        if (!result.comments.length) {
+          list.append(h("p", { class: "comment-empty", text: "Пока нет комментариев. Будь первым!" }));
+          return;
+        }
+        for (const item of result.comments) {
+          list.append(h("article", { class: "comment" },
+            h("strong", { text: item.author_name || "Гость Telegram" }),
+            h("p", { text: item.body || "" })
+          ));
+        }
+      } catch (_) {
+        list.replaceChildren(h("p", { class: "comment-empty", text: "Не удалось загрузить комментарии." }));
+      }
+    };
+    send.addEventListener("click", async () => {
+      const body = input.value.trim();
+      if (!body) { error.textContent = "Напиши комментарий."; return; }
+      send.disabled = true;
+      error.textContent = "";
+      try {
+        await telegramCall("comment-create", { ...target, body });
+        input.value = "";
+        await refresh();
+      } catch (e) {
+        error.textContent = e.message || "Не удалось отправить комментарий.";
+      } finally { send.disabled = false; }
+    });
+    refresh();
+    return panel;
+  }
+
   function showView(s) {
     const isFirst = s.id === "first";
     // Защита от null/пустых значений, которые могут прийти из старых записей БД.
@@ -679,6 +752,7 @@ textarea { resize: vertical; }
       photo,
       body ? h("p", { class: "card-text", text: body }) : null,
       s.author_name ? h("p", { class: "card-author", text: "Автор: " + s.author_name }) : null,
+      telegramInitData ? commentsPanel(s) : null,
       ownerControls
     );
     if (s.photo_path) attachPhoto(photo, s.photo_path, title);
@@ -851,6 +925,7 @@ textarea { resize: vertical; }
     : null;
 
   let session = null, isGuest = false, isMember = false, people = {}, channel = null, reloadTimer = null, started = false;
+  let telegramInitData = "";
 
   const showGate = (msg) => {
     $("app").hidden = true;
@@ -924,6 +999,43 @@ textarea { resize: vertical; }
   async function boot() {
     if (!configured) { showGate("Сайт ещё не подключён к базе. Открой SETUP.md и вставь ключи в config.js."); return; }
     if (!sb) { showGate("Не загрузилась библиотека для связи с базой. Проверь интернет и обнови страницу."); return; }
+
+    const tgApp = window.Telegram && window.Telegram.WebApp;
+    if (tgApp && typeof tgApp.initData === "string" && tgApp.initData.length) {
+      try {
+        tgApp.ready();
+        tgApp.expand();
+        telegramInitData = tgApp.initData;
+        const { data: identity, error: identityError } = await sb.functions.invoke("telegram-gateway", {
+          body: { action: "bootstrap", initData: telegramInitData }
+        });
+        if (identityError || !identity || !identity.ok) throw new Error(identity?.error || "Не удалось проверить Telegram.");
+        if (identity.role === "admin") {
+          const { data: authData, error: authError } = await sb.auth.verifyOtp({
+            email: identity.email,
+            token_hash: identity.token_hash,
+            type: "magiclink"
+          });
+          if (authError || !authData.session) throw authError || new Error("Не удалось войти как администратор.");
+          await setSession(authData.session);
+          if (!started) await start();
+        } else {
+          const { data: current } = await sb.auth.getSession();
+          if (current.session) await sb.auth.signOut();
+          session = null;
+          isGuest = true;
+          isMember = false;
+          await start();
+        }
+        sb.auth.onAuthStateChange((_ev, nextSession) => setSession(nextSession));
+        document.addEventListener("visibilitychange", () => { if (!document.hidden && (session || isGuest)) loadStars(); });
+        return;
+      } catch (e) {
+        telegramInitData = "";
+        showGate("Не удалось войти через Telegram. Закрой приложение и открой его снова. " + (e.message || ""));
+        return;
+      }
+    }
 
     const m = location.hash.match(/^#in=(.+)$/);
     if (m) {
