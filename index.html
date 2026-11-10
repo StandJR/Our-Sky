@@ -850,7 +850,7 @@ textarea { resize: vertical; }
     const iTitle = h("input", { id: "f-title", type: "text", maxlength: "80", required: true, autocomplete: "off", placeholder: "Например, наш первый вечер", value: editing ? s.title : "" });
     const iBody = h("textarea", { id: "f-body", rows: "4", maxlength: "4000", placeholder: "Что тогда было? Что запомнилось?" });
     iBody.value = editing ? (s.body || "") : "";
-    const iFile = h("input", { id: "f-photo", class: "memory-file-input", type: "file", accept: "image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" });
+    const iFile = h("input", { id: "f-photo", class: "memory-file-input", type: "file", accept: "image/*,video/mp4,video/quicktime,video/webm" });
     const iRm = h("input", { id: "f-rm", type: "checkbox" });
     const iPrivate = h("input", { id: "f-private", type: "checkbox" });
     iPrivate.checked = editing ? !!s.is_private : false;
@@ -891,10 +891,12 @@ textarea { resize: vertical; }
         }
         return;
       }
-      const allowed = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime", "video/webm"];
-      if (!allowed.includes(file.type)) {
+      const extension = file.name.split(".").pop().toLowerCase();
+      const imageFile = file.type.startsWith("image/") || ["jpg", "jpeg", "png", "webp", "heic", "heif"].includes(extension);
+      const videoFile = file.type.startsWith("video/") || ["mp4", "mov", "m4v", "webm"].includes(extension);
+      if (!imageFile && !videoFile) {
         iFile.value = "";
-        err.textContent = "Выбери JPG, PNG, WEBP или видео MP4, MOV, WEBM.";
+        err.textContent = "Выбери изображение или видео MP4, MOV, WEBM.";
         return;
       }
       if (file.size > 50 * 1024 * 1024) {
