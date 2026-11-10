@@ -296,6 +296,7 @@ dialog .row .btn.primary {
 .comment { padding: 11px 13px; border: 1px solid var(--card-edge); border-radius: 14px; background: rgba(255,255,255,.035); }
 .comment strong { display: block; margin-bottom: 3px; color: #dbe6fa; font-size: 13px; }
 .comment p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.comment-delete { margin-top: 9px; padding: 5px 9px; border: 1px solid rgba(255,120,140,.28); border-radius: 9px; background: rgba(255,90,115,.08); color: #ffb5c1; font: inherit; font-size: 12px; cursor: pointer; }
 .comment-empty { color: var(--mist); font-size: 13px; }
 .comment-form textarea { min-height: 76px; margin-top: 4px; }
 .comment-form .btn { margin-top: 9px; }
@@ -691,10 +692,27 @@ textarea { resize: vertical; }
           return;
         }
         for (const item of result.comments) {
-          list.append(h("article", { class: "comment" },
+          const card = h("article", { class: "comment" },
             h("strong", { text: cleanDisplayText(item.author_name, "Гость Telegram") }),
             h("p", { text: cleanDisplayText(item.body) })
-          ));
+          );
+          if (item.can_delete) {
+            const remove = h("button", { class: "comment-delete", type: "button" }, "Удалить комментарий");
+            remove.addEventListener("click", async () => {
+              if (!window.confirm("Удалить этот комментарий?")) return;
+              remove.disabled = true;
+              try {
+                await telegramCall("comment-delete", { ...target, comment_id: item.id });
+                await refresh();
+              } catch (e) {
+                error.textContent = e.message || "Не удалось удалить комментарий.";
+              } finally {
+                remove.disabled = false;
+              }
+            });
+            card.append(remove);
+          }
+          list.append(card);
         }
       } catch (_) {
         list.replaceChildren(h("p", { class: "comment-empty", text: "Не удалось загрузить комментарии." }));
