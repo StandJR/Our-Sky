@@ -897,6 +897,7 @@ textarea { resize: vertical; }
   }
 
   const setSession = async (s) => {
+    if (!s && isGuest && !session) return;
     const same = session && s && session.user.id === s.user.id;
     session = s;
     isGuest = false;
