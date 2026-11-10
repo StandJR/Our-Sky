@@ -706,13 +706,18 @@ textarea { resize: vertical; }
     return "Не получилось. Проверь интернет и попробуй ещё раз.";
   };
 
-  const isVideoPath = (path) => /\\.(mp4|mov|m4v|webm)$/i.test(String(path || ""));
+  const isVideoPath = (path) => /\.(mp4|mov|m4v|webm)$/i.test(String(path || ""));
   const attachMedia = async (box, path, alt) => {
     try {
       const { data, error } = await sb.functions.invoke("get-star-photo", { body: { path } });
       if (error || !data || !data.url) return;
       if (isVideoPath(path)) {
         const video = h("video", { controls: true, playsinline: true, preload: "metadata", "aria-label": alt });
+        video.autoplay = false;
+        video.defaultMuted = false;
+        video.muted = false;
+        video.volume = 1;
+        video.addEventListener("loadedmetadata", () => video.pause(), { once: true });
         video.src = data.url;
         box.append(video);
       } else {
@@ -906,9 +911,16 @@ textarea { resize: vertical; }
       }
       err.textContent = "";
       previewUrl = URL.createObjectURL(file);
-      const media = file.type.startsWith("video/")
+      const media = file.type.startsWith("video/") || videoFile
         ? h("video", { controls: true, playsinline: true, preload: "metadata" })
         : h("img", { alt: "Предпросмотр выбранного файла" });
+      if (media.tagName === "VIDEO") {
+        media.autoplay = false;
+        media.defaultMuted = false;
+        media.muted = false;
+        media.volume = 1;
+        media.addEventListener("loadedmetadata", () => media.pause(), { once: true });
+      }
       media.src = previewUrl;
       preview.append(media, h("p", { class: "memory-preview-note", text: file.name + " · " + (file.size / 1024 / 1024).toFixed(1) + " МБ" }));
     });
