@@ -1007,8 +1007,8 @@ textarea { resize: vertical; }
         });
         if (identityError || !identity || !identity.ok) throw new Error(identity?.error || "Не удалось проверить Telegram.");
         if (identity.role === "admin") {
+          // При token_hash Supabase принимает только token_hash и type.
           const { data: authData, error: authError } = await sb.auth.verifyOtp({
-            email: identity.email,
             token_hash: identity.token_hash,
             type: "magiclink"
           });
