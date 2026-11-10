@@ -91,7 +91,7 @@ h1 {
   place-items: center;
   cursor: pointer;
   color: #f5f8ff;
-  filter: drop-shadow(0 0 8px rgba(210, 226, 255, 0.52));
+  filter: drop-shadow(0 0 7px rgba(210, 226, 255, 0.34));
   will-change: transform;
   -webkit-tap-highlight-color: transparent;
 }
@@ -101,32 +101,41 @@ h1 {
   width: var(--s, 22px);
   height: var(--s, 22px);
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #fff 10%, rgba(235,244,255,.95) 19%, rgba(190,215,255,.34) 42%, transparent 72%);
-  box-shadow: 0 0 7px 2px rgba(220,235,255,.52), 0 0 20px 5px rgba(170,205,255,.20);
-  animation: twinkle 4.8s ease-in-out infinite;
+  background: radial-gradient(circle, #fff 0 5%, rgba(255,255,255,.98) 9%, rgba(226,239,255,.78) 17%, rgba(185,213,255,.24) 38%, transparent 70%);
+  box-shadow: 0 0 4px 1px rgba(235,244,255,.42), 0 0 13px 3px rgba(190,215,255,.20), 0 0 26px 7px rgba(155,190,245,.08);
+  animation: twinkle 7s ease-in-out infinite;
   animation-delay: var(--d, 0s);
 }
-.star i::before, .star i::after {
+.star i::before {
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
+  width: 1px;
+  height: 30px;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  background: linear-gradient(transparent, rgba(235,244,255,.88) 48%, #fff 50%, rgba(235,244,255,.88) 52%, transparent);
-  filter: drop-shadow(0 0 3px rgba(210,230,255,.8));
+  opacity: .28;
+  background: linear-gradient(180deg, transparent, rgba(235,244,255,.48) 35%, rgba(255,255,255,.8) 50%, rgba(235,244,255,.48) 65%, transparent);
+  filter: blur(.25px);
 }
-.star i::before { width: 1px; height: 42px; }
-.star i::after { width: 42px; height: 1px; background: linear-gradient(90deg, transparent, rgba(235,244,255,.88) 48%, #fff 50%, rgba(235,244,255,.88) 52%, transparent); }
+.star i::after { content: none; }
 .star:focus-visible { outline: 2px solid var(--cream); outline-offset: -4px; border-radius: 50%; }
-@media (hover: hover) { .star:hover { filter: drop-shadow(0 0 15px rgba(220,235,255,.9)) brightness(1.18); } }
+@media (hover: hover) { .star:hover { filter: drop-shadow(0 0 11px rgba(220,235,255,.62)) brightness(1.08); } }
 
-.star.first { --c: var(--glow); width: 64px; height: 64px; margin: -32px 0 0 -32px; color: #fff; filter: drop-shadow(0 0 13px rgba(220,235,255,.82)); }
-.star.first i { --s: 34px; animation: beat 3.8s ease-in-out infinite; box-shadow: 0 0 12px 3px rgba(235,245,255,.75), 0 0 34px 9px rgba(170,205,255,.3); }
-.star.first i::before { height: 76px; }
-.star.first i::after { width: 76px; }
+.star.first { --c: var(--glow); width: 64px; height: 64px; margin: -32px 0 0 -32px; color: #fff; filter: drop-shadow(0 0 10px rgba(220,235,255,.56)); }
+.star.first i {
+  --s: 34px;
+  animation: twinkle 8s ease-in-out infinite;
+  box-shadow: 0 0 5px 2px rgba(245,249,255,.62), 0 0 18px 5px rgba(190,215,255,.24), 0 0 38px 10px rgba(155,190,245,.10);
+}
+.star.first i::before { height: 54px; opacity: .38; }
 
-.star.born i { animation: born 1.5s ease-out both, twinkle 3.6s ease-in-out 1.5s infinite; animation-delay: 0s, 1.5s; }
+.star.born i { animation: born 1.5s ease-out both, twinkle 7s ease-in-out 1.5s infinite; animation-delay: 0s, 1.5s; }
+
+@keyframes twinkle { 0%, 100% { transform: scale(1); opacity: 0.88; } 50% { transform: scale(0.94); opacity: 0.72; } }
+@keyframes beat { 0%, 100% { transform: scale(1); } 14% { transform: scale(1.14); } 28% { transform: scale(1); } 42% { transform: scale(1.1); } 70% { transform: scale(1); } }
+@keyframes born { 0% { transform: scale(0.1) rotate(-90deg); opacity: 0; } 55% { transform: scale(2.2) rotate(0); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 
 @keyframes twinkle { 0%, 100% { transform: scale(1); opacity: 0.95; } 50% { transform: scale(0.76); opacity: 0.6; } }
 @keyframes beat { 0%, 100% { transform: scale(1); } 14% { transform: scale(1.14); } 28% { transform: scale(1); } 42% { transform: scale(1.1); } 70% { transform: scale(1); } }
