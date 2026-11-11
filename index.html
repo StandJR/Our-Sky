@@ -755,10 +755,48 @@ textarea { resize: vertical; }
     );
     panel.append(list, form);
     const target = first ? { is_first: true } : { star_id: s.id, is_first: false };
+    const bannedPeoplePanel = h("div", { class: "comment-list" });
+    const loadBannedPeople = async () => {
+      const result = await telegramCall("comment-bans-list", {});
+      bannedPeoplePanel.replaceChildren();
+      if (!result.bans || !result.bans.length) {
+        bannedPeoplePanel.append(h("p", { class: "comment-empty", text: "Сейчас нет пользователей с запретом на комментарии." }));
+        return;
+      }
+      for (const person of result.bans) {
+        const row = h("article", { class: "comment" },
+          h("strong", { text: cleanDisplayText(person.author_name, "Гость Telegram") }),
+          h("p", { text: "Доступ к комментариям ограничен" })
+        );
+        const restore = h("button", { class: "comment-delete", type: "button" }, "Вернуть доступ");
+        restore.addEventListener("click", async () => {
+          if (!window.confirm("Вернуть возможность комментировать пользователю «" + cleanDisplayText(person.author_name, "Гость Telegram") + "»?")) return;
+          restore.disabled = true;
+          try {
+            await telegramCall("comment-unban", { telegram_user_id: person.telegram_user_id });
+            await loadBannedPeople();
+            await refresh();
+          } catch (e) {
+            error.textContent = e.message || "Не удалось вернуть доступ.";
+            restore.disabled = false;
+          }
+        });
+        row.append(restore);
+        bannedPeoplePanel.append(row);
+      }
+    };
+    const adminAccess = h("section", { class: "comments" },
+      h("h3", { text: "Управление доступом к комментариям" }),
+      h("p", { class: "comment-empty", text: "Здесь можно вернуть доступ, даже если комментарий, через который был установлен запрет, уже удалён." }),
+      bannedPeoplePanel
+    );
+    panel.append(adminAccess);
     const refresh = async () => {
       try {
         const result = await telegramCall("comments-list", target);
         const canBan = result.can_ban === true;
+        adminAccess.hidden = !canBan;
+        if (canBan) await loadBannedPeople();
         if (result.viewer_banned) {
           input.disabled = true;
           send.disabled = true;
