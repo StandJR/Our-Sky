@@ -781,20 +781,16 @@ textarea { resize: vertical; }
   async function openMessagesPanel() {
     const panel = h("section", { class: "admin-access" });
     const title = h("h3", { text: "Сообщения пользователям" });
-    const intro = h("p", { class: "comment-empty", text: "Выбери пользователя по Telegram ID, напиши сообщение и при необходимости приложи файл. Здесь отображаются пользователи, которые запускали бота командой /start или открывали приложение. Новые гости будут добавляться автоматически." });
+    const intro = h("p", { class: "comment-empty", text: "Выбери человека здесь, а само сообщение отправляй уже в Telegram-боте. Можно писать текстом, записывать голосовые и видеокружочки, отправлять фото, видео, документы и геолокацию. Бот доставит сообщения выбранному пользователю." });
     const search = h("input", { type: "text", placeholder: "Поиск по имени, ID или username…" });
     search.style.margin = "8px 0 12px";
     const select = h("select", {});
     select.style.cssText = "width:100%;padding:13px;border:1px solid rgba(180,202,238,.16);border-radius:13px;background:#050b16;color:#f3f6ff;font:inherit;margin-bottom:12px";
     const detail = h("p", { class: "comment-empty", text: "Загружаем пользователей…" });
-    const message = h("textarea", { rows: "4", maxlength: "4096", placeholder: "Текст сообщения…" });
-    const file = h("input", { type: "file" });
-    file.style.margin = "12px 0";
-    const fileInfo = h("p", { class: "comment-empty", text: "Можно приложить файл любого типа. Ограничение — 49 МБ." });
     const error = h("p", { class: "err", role: "alert" });
-    const send = h("button", { class: "btn primary", type: "button" }, "Отправить через бота");
+    const send = h("button", { class: "btn primary", type: "button" }, "Выбрать и перейти в Telegram");
     const refreshUsers = h("button", { class: "btn", type: "button" }, "Обновить список");
-    panel.append(title, intro, search, select, detail, h("label", {}, "Сообщение"), message, h("label", {}, "Вложение"), file, fileInfo, error, h("div", { class: "row" }, send, refreshUsers));
+    panel.append(title, intro, search, select, detail, error, h("div", { class: "row" }, send, refreshUsers));
     const users = [];
     const renderUsers = () => {
       const term = search.value.trim().toLowerCase();
@@ -807,7 +803,8 @@ textarea { resize: vertical; }
         select.append(opt);
       }
       if (filtered.some(u => String(u.telegram_user_id) === previous)) select.value = previous;
-      detail.textContent = filtered.length ? "Найдено: " + filtered.length + ". Последняя активность отображается в списке." : "Пользователи не найдены.";
+      detail.textContent = filtered.length ? "Найдено: " + filtered.length + ". После выбора получатель будет закреплён, пока ты не выберешь другого или не отправишь /cancel боту." : "Пользователи не найдены.";
+      send.disabled = !filtered.length;
     };
     const loadUsers = async () => {
       refreshUsers.disabled = true; error.textContent = "";
@@ -817,10 +814,10 @@ textarea { resize: vertical; }
         users.splice(0, users.length, ...(r.users || []));
         renderUsers();
       } catch (e) {
-        const detail = e?.context?.body?.error || e?.message || "Не удалось загрузить пользователей.";
-        error.textContent = detail === "another_webhook_configured"
+        const detailText = e?.context?.body?.error || e?.message || "Не удалось загрузить пользователей.";
+        error.textContent = detailText === "another_webhook_configured"
           ? "У бота уже настроен другой webhook. Его нельзя безопасно заменить автоматически."
-          : detail === "webhook_setup_failed"
+          : detailText === "webhook_setup_failed"
             ? "Не удалось включить учёт гостей через Telegram. Попробуй ещё раз позже."
             : (e.message || "Не удалось загрузить пользователей.");
       }
@@ -828,36 +825,23 @@ textarea { resize: vertical; }
     };
     search.addEventListener("input", renderUsers);
     refreshUsers.addEventListener("click", loadUsers);
-    file.addEventListener("change", () => {
-      const f = file.files?.[0];
-      fileInfo.textContent = f ? f.name + " · " + (f.size / 1024 / 1024).toFixed(1) + " МБ" : "Можно приложить файл любого типа. Ограничение — 49 МБ.";
-    });
     send.addEventListener("click", async () => {
       error.textContent = "";
       const target = Number(select.value);
-      const textValue = message.value.trim();
-      const chosen = file.files?.[0] || null;
       if (!target) { error.textContent = "Сначала выбери пользователя."; return; }
-      if (!textValue && !chosen) { error.textContent = "Напиши сообщение или прикрепи файл."; return; }
-      if (textValue.length > 4096) { error.textContent = "Текст слишком длинный."; return; }
-      if (chosen && chosen.size > 49 * 1024 * 1024) { error.textContent = "Файл больше 49 МБ."; return; }
       send.disabled = true; refreshUsers.disabled = true;
       try {
-        let filePath = "";
-        if (chosen) {
-          const tgId = Number(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-          if (!Number.isSafeInteger(tgId) || tgId !== 1403987284) throw new Error("Не удалось подтвердить Telegram ID администратора.");
-          const ext = (chosen.name.match(/\.([a-zA-Z0-9]{1,12})$/) || [,"bin"])[1];
-          filePath = "outgoing/" + tgId + "/" + crypto.randomUUID() + "." + ext;
-          const { error: uploadError } = await sb.storage.from("photos").upload(filePath, chosen, { contentType: chosen.type || "application/octet-stream", upsert: false });
-          if (uploadError) throw uploadError;
+        const result = await telegramCall("message-target-select", { target_user_id: target });
+        const botUrl = "https://t.me/ourstarrysky_bot?start=compose";
+        const tgApp = window.Telegram?.WebApp;
+        if (tgApp && typeof tgApp.openTelegramLink === "function") {
+          tgApp.openTelegramLink(botUrl);
+        } else {
+          window.open(botUrl, "_blank", "noopener");
         }
-        await telegramCall("message-user-send", { target_user_id: target, text: textValue, file_path: filePath });
-        toast("Сообщение отправлено пользователю " + target + ".");
-        message.value = ""; file.value = "";
-        fileInfo.textContent = "Можно приложить файл любого типа. Ограничение — 49 МБ.";
+        toast("Получатель выбран: " + (result.display_name || target) + ". Продолжай в чате с ботом.");
       } catch (e) {
-        error.textContent = e.message || "Не удалось отправить сообщение.";
+        error.textContent = e.message || "Не удалось выбрать получателя.";
       } finally { send.disabled = false; refreshUsers.disabled = false; }
     });
     setDlg("messages", closeBtn(), panel);
