@@ -188,6 +188,7 @@ h1 {
 .add svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 .add:focus-visible, .btn:focus-visible, .close:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
 .dock span { font-size: 13px; color: var(--mist); }
+#messagesBtn { margin-top: 8px; border-color: rgba(190,210,245,.22); background: rgba(170,195,235,.07); color: #dce7fb; }
 
 /* Вход */
 .gate {
@@ -483,6 +484,7 @@ textarea { resize: vertical; }
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
     </button>
     <span>Добавить звезду</span>
+    <button class="btn" id="messagesBtn" type="button" hidden>Сообщения пользователям</button>
   </div>
 </div>
 
@@ -775,6 +777,84 @@ textarea { resize: vertical; }
       }
     } catch (_) { /* медиа просто не покажется */ }
   };
+
+  async function openMessagesPanel() {
+    const panel = h("section", { class: "admin-access" });
+    const title = h("h3", { text: "Сообщения пользователям" });
+    const intro = h("p", { class: "comment-empty", text: "Выбери пользователя по Telegram ID, напиши сообщение и при необходимости приложи файл." });
+    const search = h("input", { type: "text", placeholder: "Поиск по имени, ID или username…" });
+    search.style.margin = "8px 0 12px";
+    const select = h("select", {});
+    select.style.cssText = "width:100%;padding:13px;border:1px solid rgba(180,202,238,.16);border-radius:13px;background:#050b16;color:#f3f6ff;font:inherit;margin-bottom:12px";
+    const detail = h("p", { class: "comment-empty", text: "Загружаем пользователей…" });
+    const message = h("textarea", { rows: "4", maxlength: "4096", placeholder: "Текст сообщения…" });
+    const file = h("input", { type: "file" });
+    file.style.margin = "12px 0";
+    const fileInfo = h("p", { class: "comment-empty", text: "Можно приложить файл любого типа. Ограничение — 49 МБ." });
+    const error = h("p", { class: "err", role: "alert" });
+    const send = h("button", { class: "btn primary", type: "button" }, "Отправить через бота");
+    const refreshUsers = h("button", { class: "btn", type: "button" }, "Обновить список");
+    panel.append(title, intro, search, select, detail, h("label", {}, "Сообщение"), message, h("label", {}, "Вложение"), file, fileInfo, error, h("div", { class: "row" }, send, refreshUsers));
+    const users = [];
+    const renderUsers = () => {
+      const term = search.value.trim().toLowerCase();
+      const filtered = users.filter(u => [u.display_name, u.username, String(u.telegram_user_id)].some(v => String(v || "").toLowerCase().includes(term)));
+      const previous = select.value;
+      select.replaceChildren();
+      for (const u of filtered) {
+        const opt = h("option", { value: String(u.telegram_user_id) },
+          (u.display_name || "Пользователь") + " · " + u.telegram_user_id + (u.username ? " · @" + u.username : ""));
+        select.append(opt);
+      }
+      if (filtered.some(u => String(u.telegram_user_id) === previous)) select.value = previous;
+      detail.textContent = filtered.length ? "Найдено: " + filtered.length + ". Последняя активность отображается в списке." : "Пользователи не найдены.";
+    };
+    const loadUsers = async () => {
+      refreshUsers.disabled = true; error.textContent = "";
+      try {
+        const r = await telegramCall("message-users-list");
+        users.splice(0, users.length, ...(r.users || []));
+        renderUsers();
+      } catch (e) { error.textContent = e.message || "Не удалось загрузить пользователей."; }
+      finally { refreshUsers.disabled = false; }
+    };
+    search.addEventListener("input", renderUsers);
+    refreshUsers.addEventListener("click", loadUsers);
+    file.addEventListener("change", () => {
+      const f = file.files?.[0];
+      fileInfo.textContent = f ? f.name + " · " + (f.size / 1024 / 1024).toFixed(1) + " МБ" : "Можно приложить файл любого типа. Ограничение — 49 МБ.";
+    });
+    send.addEventListener("click", async () => {
+      error.textContent = "";
+      const target = Number(select.value);
+      const textValue = message.value.trim();
+      const chosen = file.files?.[0] || null;
+      if (!target) { error.textContent = "Сначала выбери пользователя."; return; }
+      if (!textValue && !chosen) { error.textContent = "Напиши сообщение или прикрепи файл."; return; }
+      if (textValue.length > 4096) { error.textContent = "Текст слишком длинный."; return; }
+      if (chosen && chosen.size > 49 * 1024 * 1024) { error.textContent = "Файл больше 49 МБ."; return; }
+      send.disabled = true; refreshUsers.disabled = true;
+      try {
+        let filePath = "";
+        if (chosen) {
+          const tgId = Number(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+          if (!Number.isSafeInteger(tgId) || tgId !== 1403987284) throw new Error("Не удалось подтвердить Telegram ID администратора.");
+          const ext = (chosen.name.match(/\.([a-zA-Z0-9]{1,12})$/) || [,"bin"])[1];
+          filePath = "outgoing/" + tgId + "/" + crypto.randomUUID() + "." + ext;
+          const { error: uploadError } = await sb.storage.from("photos").upload(filePath, chosen, { contentType: chosen.type || "application/octet-stream", upsert: false });
+          if (uploadError) throw uploadError;
+        }
+        await telegramCall("message-user-send", { target_user_id: target, text: textValue, file_path: filePath });
+        toast("Сообщение отправлено пользователю " + target + ".");
+        message.value = ""; file.value = "";
+        fileInfo.textContent = "Можно приложить файл любого типа. Ограничение — 49 МБ.";
+      } catch (e) {
+        error.textContent = e.message || "Не удалось отправить сообщение.";
+      } finally { send.disabled = false; refreshUsers.disabled = false; }
+    });
+    setDlg("messages", closeBtn(), panel);
+    await loadUsers();
+  }
 
   async function telegramCall(action, payload = {}) {
     if (!telegramInitData) throw new Error("Открой приложение через Telegram, чтобы использовать комментарии.");
@@ -1234,6 +1314,7 @@ textarea { resize: vertical; }
   }
 
   $("addBtn").addEventListener("click", () => showForm(null));
+  $("messagesBtn").addEventListener("click", openMessagesPanel);
 
   /* ---------- База и вход ---------- */
   const configured = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && !/ВСТАВЬ/.test(CFG.SUPABASE_URL + CFG.SUPABASE_ANON_KEY));
@@ -1243,6 +1324,7 @@ textarea { resize: vertical; }
 
   let session = null, isGuest = false, isMember = false, people = {}, channel = null, reloadTimer = null, started = false;
   let telegramInitData = "";
+  let isHusband = false;
 
   const showGate = (msg) => {
     $("app").hidden = true;
@@ -1269,6 +1351,7 @@ textarea { resize: vertical; }
     $("gate").hidden = true;
     $("app").hidden = false;
     $("dock").hidden = !isMember;
+    $("messagesBtn").hidden = !isHusband;
     await new Promise((r) => requestAnimationFrame(r));
     measure();
     if (!bodies.has("first")) {
@@ -1335,6 +1418,7 @@ textarea { resize: vertical; }
           try { await tgApp.requestFullscreen(); } catch (_) { /* fallback: expanded mode */ }
         }
         telegramInitData = tgApp.initData;
+        isHusband = Number(tgApp.initDataUnsafe?.user?.id) === 1403987284;
         const { data: identity, error: identityError } = await sb.functions.invoke("telegram-gateway", {
           body: { action: "bootstrap", initData: telegramInitData }
         });
