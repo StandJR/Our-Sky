@@ -758,6 +758,18 @@ textarea { resize: vertical; }
     const refresh = async () => {
       try {
         const result = await telegramCall("comments-list", target);
+        const canBan = result.can_ban === true;
+        if (result.viewer_banned) {
+          input.disabled = true;
+          send.disabled = true;
+          input.placeholder = "Возможность комментировать ограничена.";
+          error.textContent = "Ты не можешь оставлять комментарии. Обратись к администратору.";
+        } else {
+          input.disabled = false;
+          send.disabled = false;
+          input.placeholder = "Оставить комментарий…";
+          if (error.textContent.includes("не можешь оставлять")) error.textContent = "";
+        }
         list.replaceChildren();
         if (!result.comments.length) {
           list.append(h("p", { class: "comment-empty", text: "Пока нет комментариев. Будь первым!" }));
@@ -784,6 +796,26 @@ textarea { resize: vertical; }
             });
             card.append(remove);
           }
+          if (canBan) {
+            const ban = h("button", {
+              class: "comment-delete",
+              type: "button"
+            }, item.is_banned ? "Разрешить комментарии этому человеку" : "Запретить комментарии этому человеку");
+            ban.addEventListener("click", async () => {
+              const action = item.is_banned ? "снять запрет на комментарии для" : "запретить комментарии";
+              if (!window.confirm("Подтвердить: " + action + " пользователя «" + cleanDisplayText(item.author_name, "Гость Telegram") + "»?")) return;
+              ban.disabled = true;
+              try {
+                await telegramCall("comment-ban", { ...target, comment_id: item.id, banned: !item.is_banned });
+                await refresh();
+              } catch (e) {
+                error.textContent = e.message || "Не удалось изменить запрет.";
+              } finally {
+                ban.disabled = false;
+              }
+            });
+            card.append(ban);
+          }
           list.append(card);
         }
       } catch (_) {
@@ -800,7 +832,9 @@ textarea { resize: vertical; }
         input.value = "";
         await refresh();
       } catch (e) {
-        error.textContent = e.message || "Не удалось отправить комментарий.";
+        error.textContent = e.message === "commenting_blocked"
+          ? "Тебе запрещено оставлять комментарии."
+          : (e.message || "Не удалось отправить комментарий.");
       } finally { send.disabled = false; }
     });
     refresh();
