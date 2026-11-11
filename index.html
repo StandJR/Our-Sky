@@ -781,7 +781,7 @@ textarea { resize: vertical; }
   async function openMessagesPanel() {
     const panel = h("section", { class: "admin-access" });
     const title = h("h3", { text: "Сообщения пользователям" });
-    const intro = h("p", { class: "comment-empty", text: "Выбери пользователя по Telegram ID, напиши сообщение и при необходимости приложи файл." });
+    const intro = h("p", { class: "comment-empty", text: "Выбери пользователя по Telegram ID, напиши сообщение и при необходимости приложи файл. Здесь отображаются те, кто уже открывал приложение или оставлял комментарий." });
     const search = h("input", { type: "text", placeholder: "Поиск по имени, ID или username…" });
     search.style.margin = "8px 0 12px";
     const select = h("select", {});
