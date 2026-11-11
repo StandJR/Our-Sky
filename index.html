@@ -781,7 +781,7 @@ textarea { resize: vertical; }
   async function openMessagesPanel() {
     const panel = h("section", { class: "admin-access" });
     const title = h("h3", { text: "Сообщения пользователям" });
-    const intro = h("p", { class: "comment-empty", text: "Выбери пользователя по Telegram ID, напиши сообщение и при необходимости приложи файл. Здесь отображаются те, кто уже открывал приложение или оставлял комментарий." });
+    const intro = h("p", { class: "comment-empty", text: "Выбери пользователя по Telegram ID, напиши сообщение и при необходимости приложи файл. Здесь отображаются пользователи, которые запускали бота командой /start или открывали приложение. Новые гости будут добавляться автоматически." });
     const search = h("input", { type: "text", placeholder: "Поиск по имени, ID или username…" });
     search.style.margin = "8px 0 12px";
     const select = h("select", {});
@@ -812,10 +812,18 @@ textarea { resize: vertical; }
     const loadUsers = async () => {
       refreshUsers.disabled = true; error.textContent = "";
       try {
+        await telegramCall("enable-guest-registration");
         const r = await telegramCall("message-users-list");
         users.splice(0, users.length, ...(r.users || []));
         renderUsers();
-      } catch (e) { error.textContent = e.message || "Не удалось загрузить пользователей."; }
+      } catch (e) {
+        const detail = e?.context?.body?.error || e?.message || "Не удалось загрузить пользователей.";
+        error.textContent = detail === "another_webhook_configured"
+          ? "У бота уже настроен другой webhook. Его нельзя безопасно заменить автоматически."
+          : detail === "webhook_setup_failed"
+            ? "Не удалось включить учёт гостей через Telegram. Попробуй ещё раз позже."
+            : (e.message || "Не удалось загрузить пользователей.");
+      }
       finally { refreshUsers.disabled = false; }
     };
     search.addEventListener("input", renderUsers);
