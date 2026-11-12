@@ -648,7 +648,10 @@ textarea { resize: vertical; }
       h("span", { class: "star-date", "aria-hidden": "true", text: dateLabel })
     );
     if (!isFirst) {
-      if (s.star_type === "gold") {
+      if (s.is_private) {
+        el.style.setProperty("--star-color", "#c7a6ff");
+        el.style.setProperty("--star-glow", "rgba(170, 125, 255, .78)");
+      } else if (s.star_type === "gold") {
         el.style.setProperty("--star-color", "#ffd58a");
         el.style.setProperty("--star-glow", "rgba(255, 190, 92, .68)");
       } else {
@@ -708,8 +711,8 @@ textarea { resize: vertical; }
         b.data = s;
         const isFirst = s.id === "first";
         b.el.classList.toggle("first", isFirst);
-        b.el.style.setProperty("--star-color", isFirst ? "#ffd58a" : (s.star_type === "gold" ? "#ffd58a" : "#e8efff"));
-        b.el.style.setProperty("--star-glow", isFirst || s.star_type === "gold" ? "rgba(255, 190, 92, .68)" : "rgba(190, 215, 255, .48)");
+        b.el.style.setProperty("--star-color", isFirst ? "#ffd58a" : (s.is_private ? "#c7a6ff" : (s.star_type === "gold" ? "#ffd58a" : "#e8efff")));
+        b.el.style.setProperty("--star-glow", isFirst || s.is_private || s.star_type === "gold" ? (s.is_private && !isFirst ? "rgba(170, 125, 255, .78)" : "rgba(255, 190, 92, .68)") : "rgba(190, 215, 255, .48)");
         const dateValue = typeof s.happened_on === "string" ? s.happened_on : "";
         const dateLabel = /^\d{4}-\d{2}-\d{2}$/.test(dateValue)
           ? dateValue.slice(8, 10) + "." + dateValue.slice(5, 7) + "." + dateValue.slice(2, 4)
@@ -1167,6 +1170,12 @@ textarea { resize: vertical; }
           row.author_name = people[session.user.id] || null;
           const r = await sb.from("stars").insert(row).select().single();
           if (r.error) throw r.error;
+          try {
+            const notice = await sb.functions.invoke("telegram-gateway", {
+              body: { action: "star-created-notify", initData: telegramInitData, star_id: r.data.id }
+            });
+            if (notice.error || !notice.data?.ok) console.warn("Star notification result:", notice.error || notice.data);
+          } catch (noticeError) { console.warn("Star notification failed:", noticeError); }
         }
         try { await loadStars(); } catch (_) { /* сохранение уже выполнено */ }
         clearPreviewUrl();
