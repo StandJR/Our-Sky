@@ -499,6 +499,32 @@ textarea { resize: vertical; }
 .calendar-entries{display:grid;gap:7px}
 .calendar-entry{padding:10px 12px;border:1px solid var(--card-edge);border-radius:12px;background:rgba(255,255,255,.035);color:var(--cream);text-align:left;font:inherit}
 
+
+/* Полноэкранное личное небо */
+.private-screen{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;overflow:hidden;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 20%,rgba(105,69,158,.28),transparent 48%),radial-gradient(ellipse at 80% 85%,rgba(49,34,94,.2),transparent 45%),linear-gradient(180deg,#090613,#100b20 55%,#080914);color:#f3eaff}
+.private-screen:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.38;background-image:radial-gradient(#d9c6ff .7px,transparent .9px),radial-gradient(rgba(196,165,255,.7) .8px,transparent 1px);background-size:43px 43px,71px 71px;background-position:0 0,19px 23px}
+.private-screen>*{position:relative}
+.private-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.private-back{border:1px solid rgba(206,180,255,.24);border-radius:999px;background:rgba(255,255,255,.06);color:#e9ddff;padding:10px 15px;font:inherit;font-size:13px}
+.private-top small{color:rgba(221,203,255,.52);font-size:10px;letter-spacing:.17em;text-transform:uppercase}
+.private-screen-head{text-align:center;padding:22px 0 12px}
+.private-screen-head .private-kicker{letter-spacing:.25em}
+.private-screen-head h2{margin:0;color:#f2e8ff;font:400 clamp(38px,10vw,54px)/1.05 var(--font-display);text-shadow:0 0 28px rgba(184,143,255,.28)}
+.private-screen-head p{margin:7px 0 0;color:rgba(225,211,249,.58);font-size:12px}
+.private-field{position:relative;flex:1;min-height:0;overflow:auto;padding:8px 2px 22px;display:grid;align-content:start;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.private-memory{min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:14px 10px;border:1px solid rgba(190,157,255,.19);border-radius:18px;background:linear-gradient(145deg,rgba(180,136,255,.10),rgba(255,255,255,.025));color:#f2eaff;text-align:center;font:inherit}
+.private-memory-orb{width:9px;height:9px;border-radius:50%;background:#d8baff;box-shadow:0 0 9px 4px rgba(179,132,255,.45),0 0 28px 9px rgba(151,104,225,.22)}
+.private-memory b{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.private-memory small{color:rgba(224,207,250,.53);font-size:10px}
+.private-empty{grid-column:1/-1;margin:auto;text-align:center;color:rgba(224,207,250,.62);font-size:13px;max-width:260px;line-height:1.7}
+.constellation-card{position:relative;overflow:hidden;padding:0;border-color:rgba(190,210,245,.17);background:linear-gradient(150deg,rgba(25,37,63,.76),rgba(8,13,25,.86))}
+.constellation-art{display:block;width:100%;height:132px}
+.constellation-info{padding:0 15px 15px}
+.constellation-info h3{margin:0 0 3px;font-size:16px}
+.constellation-info p{margin:0 0 12px;color:var(--mist);font-size:11px}
+.constellation-points{display:flex;flex-wrap:wrap;gap:7px}
+.constellation-points button{padding:7px 10px;border:1px solid rgba(190,210,245,.14);border-radius:999px;background:rgba(180,200,240,.07);color:#e7efff;font:inherit;font-size:11px}
+
 </style>
 </head>
 <body>
@@ -527,6 +553,19 @@ textarea { resize: vertical; }
     <button class="btn" id="messagesBtn" type="button" hidden>Сообщения пользователям</button>
   </div>
 </div>
+
+<section class="private-screen" id="privateScreen" hidden>
+  <div class="private-top">
+    <button class="private-back" id="privateBackBtn" type="button">← Основное небо</button>
+    <small>Личное пространство</small>
+  </div>
+  <header class="private-screen-head">
+    <p class="private-kicker">только для нас двоих</p>
+    <h2>Наше тайное небо</h2>
+    <p>Воспоминания, которые видим только мы</p>
+  </header>
+  <div class="private-field" id="privateField"></div>
+</section>
 
 <section class="gate" id="gate" hidden>
   <div class="gate-in">
@@ -1141,24 +1180,50 @@ textarea { resize: vertical; }
   };
 
   function openConstellations() {
-    const items = publicMemories().filter(s => s.id !== "first" || s.title);
-    const sorted = items.slice().sort((a,b) => String(a.happened_on||"").localeCompare(String(b.happened_on||"")));
-    const panel = h("section",{class:"sky-panel"},
-      h("p",{class:"sky-panel-intro",text:"Созвездия складываются из уже существующих открытых звёзд. Сами воспоминания и их расположение не меняются."})
+    const items=publicMemories().filter(s=>s && s.happened_on);
+    const groups=new Map();
+    items.forEach(s=>{
+      const year=String(s.happened_on).slice(0,4);
+      if(!groups.has(year))groups.set(year,[]);
+      groups.get(year).push(s);
+    });
+    const panel=h("section",{class:"sky-panel"},
+      h("p",{class:"sky-panel-intro",text:"Каждое созвездие — отдельная глава вашей истории. Линии соединяют реальные открытые звёзды, а нажатие на точку открывает воспоминание."})
     );
-    if (!sorted.length) panel.append(h("p",{class:"comment-empty",text:"Пока не из чего составить созвездия."}));
-    for(let i=0;i<sorted.length;i+=3){
-      const group=sorted.slice(i,i+3);
-      const card=h("article",{class:"constellation-card"},
-        h("h3",{text:["Первые огни","Тихие моменты","Общие маршруты","Нити времени"][Math.floor(i/3)%4]}),
-        h("p",{text:group.length+" "+plural(group.length,["звезда","звезды","звёзд"])+" · существующие воспоминания"}),
-        h("div",{class:"constellation-stars"})
+    if(!items.length)panel.append(h("p",{class:"comment-empty",text:"Пока небо ждёт первых открытых воспоминаний."}));
+    const palettes=[["#f7d99c","rgba(247,217,156,.55)"],["#b9d5ff","rgba(150,190,255,.55)"],["#d6b8ff","rgba(190,150,255,.55)"],["#a9e6dc","rgba(120,220,200,.5)"]];
+    [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0])).forEach(([year,group],index)=>{
+      const points=group.slice().sort((a,b)=>String(a.happened_on).localeCompare(String(b.happened_on))).slice(0,12);
+      const coords=points.map((_,i)=>{
+        const angle=-Math.PI/2+(i/Math.max(1,points.length))*Math.PI*2;
+        const radius=points.length===1?0:points.length===2?34:42+(i%2)*12;
+        return {x:100+Math.cos(angle)*radius,y:68+Math.sin(angle)*radius*.72};
+      });
+      const color=palettes[index%palettes.length];
+      const svg=h("svg",{class:"constellation-art",viewBox:"0 0 200 136",role:"img","aria-label":"Схема созвездия "+year});
+      const defs=h("defs",{});
+      const grad=h("radialGradient",{id:"constellationGlow"+index});
+      grad.append(h("stop",{offset:"0%","stop-color":color[0],"stop-opacity":".9"}),h("stop",{offset:"100%","stop-color":color[0],"stop-opacity":"0"}));
+      defs.append(grad);svg.append(defs);
+      for(let i=1;i<coords.length;i++){
+        const a=coords[i-1],b=coords[i];
+        svg.append(h("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:color[0],"stroke-opacity":".45","stroke-width":"1"}));
+      }
+      if(coords.length>2)svg.append(h("line",{x1:coords.at(-1).x,y1:coords.at(-1).y,x2:coords[0].x,y2:coords[0].y,stroke:color[0],"stroke-opacity":".22","stroke-width":".8","stroke-dasharray":"2 4"}));
+      coords.forEach((p,i)=>{
+        svg.append(h("circle",{cx:p.x,cy:p.y,r:9,fill:"url(#constellationGlow"+index+")",opacity:".5"}));
+        svg.append(h("circle",{cx:p.x,cy:p.y,r:i===0?2.7:1.9,fill:color[0]}));
+      });
+      const info=h("div",{class:"constellation-info"},
+        h("h3",{text:"Глава "+year}),
+        h("p",{text:group.length+" "+plural(group.length,["воспоминание","воспоминания","воспоминаний"])+" · созвездие открытых звёзд"}),
+        h("div",{class:"constellation-points"})
       );
-      const chips=card.querySelector(".constellation-stars");
-      group.forEach(s=>chips.append(h("button",{type:"button",onclick:()=>showView(s)},cleanDisplayText(s.title,"Без названия"))));
-      panel.append(card);
-    }
-    setDlg("constellations",closeBtn(),h("p",{class:"delete-kicker",text:"Карта воспоминаний"}),h("h2",{class:"card-title",id:"dlgTitle",text:"Созвездия"}),panel);
+      const chips=info.querySelector(".constellation-points");
+      points.forEach(s=>chips.append(h("button",{type:"button",onclick:()=>showView(s)},cleanDisplayText(s.title,"Воспоминание"))));
+      panel.append(h("article",{class:"constellation-card"},svg,info));
+    });
+    setDlg("constellations",closeBtn(),h("p",{class:"delete-kicker",text:"Карта открытых воспоминаний"}),h("h2",{class:"card-title",id:"dlgTitle",text:"Созвездия"}),panel);
   }
 
   function openCalendar(year=new Date().getFullYear(),month=new Date().getMonth()) {
@@ -1200,24 +1265,29 @@ textarea { resize: vertical; }
 
   function openPrivateStars() {
     if(!isMember || !session){toast("Это пространство доступно только владельцам неба.");return;}
-    const room=h("section",{class:"private-room"},
-      h("p",{class:"private-kicker",text:"Личное пространство · доступ закрыт"}),
-      h("h2",{class:"private-heading",text:"Только для нас"}),
-      h("p",{class:"private-note",text:"Здесь хранятся звёзды, которые видны только мужу и жене. Они не появляются на общем небе."})
-    );
-    if(!privateStars.length)room.append(h("p",{class:"private-note",text:"Пока здесь тихо. Личные воспоминания появятся в этом месте."}));
+    const screen=$("privateScreen");
+    const field=$("privateField");
+    field.replaceChildren();
+    $("app").hidden=true;
+    screen.hidden=false;
+    if(!privateStars.length){
+      field.append(h("p",{class:"private-empty",text:"Пока здесь тихо. Когда вы сохраните личное воспоминание, оно появится среди этих звёзд."}));
+      return;
+    }
     privateStars.slice().sort((a,b)=>String(b.happened_on||"").localeCompare(String(a.happened_on||""))).forEach(s=>{
-      const entry=h("button",{class:"private-entry",type:"button"},
-        h("span",{class:"private-orb"}),
-        h("span",{class:"private-entry-copy"},
-          h("b",{text:cleanDisplayText(s.title,"Скрытое воспоминание")}),
-          h("small",{text:s.happened_on?fmtFull(s.happened_on):"Дата не указана"})
-        )
+      const entry=h("button",{class:"private-memory",type:"button"},
+        h("span",{class:"private-memory-orb"}),
+        h("b",{text:cleanDisplayText(s.title,"Скрытое воспоминание")}),
+        h("small",{text:s.happened_on?fmtFull(s.happened_on):"Дата не указана"})
       );
       entry.addEventListener("click",()=>showView(s));
-      room.append(entry);
+      field.append(entry);
     });
-    setDlg("private",closeBtn(),room);
+  }
+  function closePrivateStars(){
+    $("privateScreen").hidden=true;
+    $("app").hidden=false;
+    measure();
   }
 
   const compress = async (file, max = 1600) => {
@@ -1511,6 +1581,7 @@ textarea { resize: vertical; }
   $("constellationsBtn").addEventListener("click", openConstellations);
   $("calendarBtn").addEventListener("click", () => openCalendar());
   $("privateStarsBtn").addEventListener("click", openPrivateStars);
+  $("privateBackBtn").addEventListener("click", closePrivateStars);
 
   /* ---------- База и вход ---------- */
   const configured = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && !/ВСТАВЬ/.test(CFG.SUPABASE_URL + CFG.SUPABASE_ANON_KEY));
