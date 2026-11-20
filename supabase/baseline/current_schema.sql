@@ -240,6 +240,8 @@ using (
 );
 
 -- Preserve the current table grants used by the app.
+-- Supabase service_role currently has full access to all application tables.
+grant all privileges on all tables in schema public to service_role;
 grant select on public.people to authenticated;
 grant select on public.stars to anon, authenticated;
 grant insert, update on public.stars to authenticated;
