@@ -581,7 +581,7 @@ textarea { resize: vertical; }
   /* ---------- Звёздный фон ---------- */
   const cv = $("bg");
   const ctx = cv.getContext("2d");
-  let dots = [], cw = 0, ch = 0;
+  let dots = [], cw = 0, ch = 0, shootingStar = null, nextShootingStar = 0;
   const initCanvas = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cw = window.innerWidth; ch = window.innerHeight;
@@ -594,9 +594,68 @@ textarea { resize: vertical; }
       s: Math.random() * 1.5 + 0.5, p: Math.random() * 6.28
     }));
   };
+  const drawAurora = (t) => {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const bands = [
+      { y: .25, amp: 34, speed: .13, hue: "rgba(67, 190, 173," },
+      { y: .34, amp: 27, speed: -.10, hue: "rgba(91, 117, 218," },
+      { y: .42, amp: 20, speed: .08, hue: "rgba(139, 94, 190," }
+    ];
+    for (const band of bands) {
+      const drift = reduce ? 0 : t * band.speed;
+      const y = ch * band.y + Math.sin(drift + band.y * 9) * band.amp;
+      const glow = ctx.createLinearGradient(0, y - 95, 0, y + 110);
+      glow.addColorStop(0, band.hue + "0)");
+      glow.addColorStop(.42, band.hue + (reduce ? ".035)" : ".055)"));
+      glow.addColorStop(.72, band.hue + ".018)");
+      glow.addColorStop(1, band.hue + "0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.moveTo(-20, y);
+      ctx.bezierCurveTo(cw * .22, y - 65 + Math.sin(drift) * 22, cw * .68, y + 65 + Math.cos(drift) * 18, cw + 20, y - 8);
+      ctx.lineTo(cw + 20, y + 85);
+      ctx.bezierCurveTo(cw * .62, y + 145, cw * .25, y + 18, -20, y + 90);
+      ctx.closePath();
+      ctx.fill();
+    }
+    const haze = ctx.createRadialGradient(cw * .52, ch * .38, 0, cw * .52, ch * .38, Math.max(cw, ch) * .62);
+    haze.addColorStop(0, "rgba(39, 93, 116, .075)");
+    haze.addColorStop(.55, "rgba(48, 54, 112, .035)");
+    haze.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, 0, cw, ch);
+    ctx.restore();
+  };
   const drawBg = (ts) => {
     ctx.clearRect(0, 0, cw, ch);
     const t = ts / 1000;
+    drawAurora(t);
+    if (!reduce && !shootingStar && ts > nextShootingStar) {
+      shootingStar = { x: cw * (.18 + Math.random() * .64), y: ch * (.08 + Math.random() * .34), age: 0, length: 105 + Math.random() * 85, speed: 520 + Math.random() * 260 };
+      nextShootingStar = ts + 9000 + Math.random() * 15000;
+    }
+    if (shootingStar) {
+      const q = shootingStar;
+      q.age += reduce ? 0 : 1 / 60;
+      const progress = q.age * q.speed / q.length;
+      const x = q.x + progress * q.length * .72;
+      const y = q.y + progress * q.length * .42;
+      const fade = Math.max(0, 1 - q.age / .42);
+      if (fade > 0) {
+        ctx.save();
+        ctx.globalAlpha = fade * .72;
+        ctx.lineWidth = 1.5;
+        const trail = ctx.createLinearGradient(x - q.length * .72, y - q.length * .42, x, y);
+        trail.addColorStop(0, "rgba(255,255,255,0)");
+        trail.addColorStop(1, "rgba(220,242,255,.95)");
+        ctx.strokeStyle = trail;
+        ctx.shadowColor = "rgba(190,225,255,.8)";
+        ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.moveTo(x - q.length * .72, y - q.length * .42); ctx.lineTo(x, y); ctx.stroke();
+        ctx.restore();
+      } else shootingStar = null;
+    }
     for (const d of dots) {
       ctx.globalAlpha = reduce ? d.a : d.a * (0.65 + 0.35 * Math.sin(t * d.s + d.p));
       ctx.fillStyle = d.r > 1.1 ? "#ffe9c9" : "#ffffff";
