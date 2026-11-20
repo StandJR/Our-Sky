@@ -465,6 +465,40 @@ textarea { resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Навигация по публичному небу */
+.sky-tools{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;padding:8px 0 2px}
+.sky-tools .btn{padding:9px 12px;font-size:12px;background:rgba(170,195,235,.055);border-color:rgba(190,210,245,.13)}
+/* Отдельное пространство для личных звёзд */
+.private-room{position:relative;overflow:hidden;padding:20px;border:1px solid rgba(192,157,255,.25);border-radius:22px;background:radial-gradient(ellipse at 80% 0%,rgba(143,91,204,.22),transparent 52%),linear-gradient(155deg,#171027,#0b0b19 70%,#080b17);box-shadow:inset 0 1px rgba(255,255,255,.05)}
+.private-room:before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(#e5d7ff 1px,transparent 1px);background-size:37px 37px;opacity:.13}
+.private-room>*{position:relative}
+.private-kicker{margin:0 0 5px;color:#c7a9f3;font-size:10px;letter-spacing:.2em;text-transform:uppercase}
+.private-heading{margin:0 42px 8px 0;font:400 34px/1.1 var(--font-display);color:#f1e8ff}
+.private-note{margin:0 0 18px;color:rgba(224,210,248,.65);font-size:12px}
+.private-entry{display:flex;align-items:center;gap:12px;width:100%;margin:9px 0;padding:13px;border:1px solid rgba(192,157,255,.17);border-radius:15px;background:rgba(255,255,255,.045);color:#f3eaff;text-align:left;font:inherit;cursor:pointer}
+.private-orb{width:11px;height:11px;flex:none;border-radius:50%;background:#c9a7ff;box-shadow:0 0 14px 5px rgba(173,126,255,.42)}
+.private-entry-copy{min-width:0;display:grid;gap:2px}
+.private-entry-copy b{font-size:13px;overflow-wrap:anywhere}
+.private-entry-copy small{color:rgba(224,210,248,.58);font-size:11px}
+.sky-panel{display:grid;gap:13px}
+.sky-panel-intro{margin:0;color:var(--mist);font-size:13px}
+.constellation-card{padding:15px;border:1px solid rgba(190,210,245,.14);border-radius:17px;background:radial-gradient(ellipse at 100% 0%,rgba(125,150,205,.12),transparent 65%),rgba(255,255,255,.025)}
+.constellation-card h3{margin:0 0 4px;font-size:15px}
+.constellation-card p{margin:0 0 10px;color:var(--mist);font-size:11px}
+.constellation-stars{display:flex;flex-wrap:wrap;gap:7px}
+.constellation-stars button{padding:7px 10px;border:1px solid rgba(190,210,245,.14);border-radius:999px;background:rgba(180,200,240,.07);color:#e7efff;font:inherit;font-size:12px}
+.calendar-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.calendar-head strong{font-size:16px;text-transform:capitalize}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.calendar-weekday{text-align:center;color:rgba(200,215,240,.48);font-size:10px;padding:4px 0}
+.calendar-day{position:relative;min-height:42px;border:1px solid rgba(190,210,245,.09);border-radius:11px;background:rgba(255,255,255,.025);color:#dce7fb;font:inherit;font-size:12px}
+.calendar-day.has-stars{border-color:rgba(220,190,135,.4);background:rgba(220,190,135,.09);color:#ffe1a8}
+.calendar-day:disabled{opacity:.18}
+.calendar-day i{position:absolute;left:50%;bottom:5px;width:4px;height:4px;border-radius:50%;background:#f2ce91;transform:translateX(-50%)}
+.calendar-entries{display:grid;gap:7px}
+.calendar-entry{padding:10px 12px;border:1px solid var(--card-edge);border-radius:12px;background:rgba(255,255,255,.035);color:var(--cream);text-align:left;font:inherit}
+
 </style>
 </head>
 <body>
@@ -484,6 +518,12 @@ textarea { resize: vertical; }
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
     </button>
     <span>Добавить звезду</span>
+    <div class="sky-tools" id="skyTools">
+      <button class="btn" id="randomStarBtn" type="button">✧ Случайная звезда</button>
+      <button class="btn" id="constellationsBtn" type="button">Созвездия</button>
+      <button class="btn" id="calendarBtn" type="button">Календарь</button>
+      <button class="btn" id="privateStarsBtn" type="button" hidden>✦ Наше тайное небо</button>
+    </div>
     <button class="btn" id="messagesBtn" type="button" hidden>Сообщения пользователям</button>
   </div>
 </div>
@@ -679,6 +719,7 @@ textarea { resize: vertical; }
   /* ---------- Дрейфующие звёзды ---------- */
   const field = $("field");
   const bodies = new Map();
+  let privateStars = [];
   const COLORS = ["#e8efff", "#fff3e8"];
   const EDGE = 30;
   let fw = 0, fh = 0, loaded = false, lastTs = 0;
@@ -759,7 +800,9 @@ textarea { resize: vertical; }
     requestAnimationFrame(step);
   };
 
-  const syncStars = (list) => {
+  const syncStars = (incoming) => {
+    privateStars = isMember ? incoming.filter((s) => s.is_private) : [];
+    const list = incoming.filter((s) => !s.is_private);
     const ids = new Set(list.map((s) => s.id));
     for (const [id, b] of [...bodies]) {
       if (id !== "first" && !ids.has(id)) { b.el.remove(); bodies.delete(id); }
@@ -1088,6 +1131,95 @@ textarea { resize: vertical; }
     if (s.photo_path) attachMedia(photo, s.photo_path, title);
   }
 
+
+  /* ---------- Дополнительные разделы неба ---------- */
+  const publicMemories = () => [...bodies.values()].map((b) => b.data).filter((s) => s && !s.is_private && s.id !== "first" ? true : s && s.id === "first");
+  const openRandomStar = () => {
+    const items = publicMemories();
+    if (!items.length) { toast("Пока нет открытых звёзд."); return; }
+    showView(items[Math.floor(Math.random() * items.length)]);
+  };
+
+  function openConstellations() {
+    const items = publicMemories().filter(s => s.id !== "first" || s.title);
+    const sorted = items.slice().sort((a,b) => String(a.happened_on||"").localeCompare(String(b.happened_on||"")));
+    const panel = h("section",{class:"sky-panel"},
+      h("p",{class:"sky-panel-intro",text:"Созвездия складываются из уже существующих открытых звёзд. Сами воспоминания и их расположение не меняются."})
+    );
+    if (!sorted.length) panel.append(h("p",{class:"comment-empty",text:"Пока не из чего составить созвездия."}));
+    for(let i=0;i<sorted.length;i+=3){
+      const group=sorted.slice(i,i+3);
+      const card=h("article",{class:"constellation-card"},
+        h("h3",{text:["Первые огни","Тихие моменты","Общие маршруты","Нити времени"][Math.floor(i/3)%4]}),
+        h("p",{text:group.length+" "+plural(group.length,["звезда","звезды","звёзд"])+" · существующие воспоминания"}),
+        h("div",{class:"constellation-stars"})
+      );
+      const chips=card.querySelector(".constellation-stars");
+      group.forEach(s=>chips.append(h("button",{type:"button",onclick:()=>showView(s)},cleanDisplayText(s.title,"Без названия"))));
+      panel.append(card);
+    }
+    setDlg("constellations",closeBtn(),h("p",{class:"delete-kicker",text:"Карта воспоминаний"}),h("h2",{class:"card-title",id:"dlgTitle",text:"Созвездия"}),panel);
+  }
+
+  function openCalendar(year=new Date().getFullYear(),month=new Date().getMonth()) {
+    const items=publicMemories();
+    const panel=h("section",{class:"sky-panel"});
+    const head=h("div",{class:"calendar-head"});
+    const prev=h("button",{class:"btn",type:"button"},"‹");
+    const next=h("button",{class:"btn",type:"button"},"›");
+    const label=h("strong",{});
+    head.append(prev,label,next);
+    const grid=h("div",{class:"calendar-grid"});
+    const entries=h("div",{class:"calendar-entries"});
+    panel.append(h("p",{class:"sky-panel-intro",text:"Выбери день, чтобы увидеть открытые воспоминания этой даты."}),head,grid,entries);
+    const render=()=>{
+      label.textContent=new Date(year,month,1).toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
+      grid.replaceChildren();entries.replaceChildren();
+      ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d=>grid.append(h("span",{class:"calendar-weekday",text:d})));
+      const first=(new Date(year,month,1).getDay()+6)%7;
+      const count=new Date(year,month+1,0).getDate();
+      for(let i=0;i<first;i++)grid.append(h("span",{}));
+      for(let day=1;day<=count;day++){
+        const key=year+"-"+String(month+1).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+        const found=items.filter(s=>s.happened_on===key);
+        const b=h("button",{class:"calendar-day"+(found.length?" has-stars":""),type:"button"},String(day));
+        if(found.length)b.append(h("i",{}));
+        b.addEventListener("click",()=>{
+          entries.replaceChildren();
+          if(!found.length){entries.append(h("p",{class:"comment-empty",text:"В этот день открытых воспоминаний нет."}));return;}
+          found.forEach(s=>entries.append(h("button",{class:"calendar-entry",type:"button",onclick:()=>showView(s)},cleanDisplayText(s.title,"Воспоминание"))));
+        });
+        grid.append(b);
+      }
+    };
+    prev.addEventListener("click",()=>{month--;if(month<0){month=11;year--;}render();});
+    next.addEventListener("click",()=>{month++;if(month>11){month=0;year++;}render();});
+    render();
+    setDlg("calendar",closeBtn(),h("p",{class:"delete-kicker",text:"Даты открытых воспоминаний"}),h("h2",{class:"card-title",id:"dlgTitle",text:"Небесный календарь"}),panel);
+  }
+
+  function openPrivateStars() {
+    if(!isMember || !session){toast("Это пространство доступно только владельцам неба.");return;}
+    const room=h("section",{class:"private-room"},
+      h("p",{class:"private-kicker",text:"Личное пространство · доступ закрыт"}),
+      h("h2",{class:"private-heading",text:"Только для нас"}),
+      h("p",{class:"private-note",text:"Здесь хранятся звёзды, которые видны только мужу и жене. Они не появляются на общем небе."})
+    );
+    if(!privateStars.length)room.append(h("p",{class:"private-note",text:"Пока здесь тихо. Личные воспоминания появятся в этом месте."}));
+    privateStars.slice().sort((a,b)=>String(b.happened_on||"").localeCompare(String(a.happened_on||""))).forEach(s=>{
+      const entry=h("button",{class:"private-entry",type:"button"},
+        h("span",{class:"private-orb"}),
+        h("span",{class:"private-entry-copy"},
+          h("b",{text:cleanDisplayText(s.title,"Скрытое воспоминание")}),
+          h("small",{text:s.happened_on?fmtFull(s.happened_on):"Дата не указана"})
+        )
+      );
+      entry.addEventListener("click",()=>showView(s));
+      room.append(entry);
+    });
+    setDlg("private",closeBtn(),room);
+  }
+
   const compress = async (file, max = 1600) => {
     const url = URL.createObjectURL(file);
     try {
@@ -1375,6 +1507,10 @@ textarea { resize: vertical; }
 
   $("addBtn").addEventListener("click", () => showForm(null));
   $("messagesBtn").addEventListener("click", openMessagesPanel);
+  $("randomStarBtn").addEventListener("click", openRandomStar);
+  $("constellationsBtn").addEventListener("click", openConstellations);
+  $("calendarBtn").addEventListener("click", () => openCalendar());
+  $("privateStarsBtn").addEventListener("click", openPrivateStars);
 
   /* ---------- База и вход ---------- */
   const configured = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY && !/ВСТАВЬ/.test(CFG.SUPABASE_URL + CFG.SUPABASE_ANON_KEY));
@@ -1412,6 +1548,7 @@ textarea { resize: vertical; }
     $("app").hidden = false;
     $("dock").hidden = !isMember;
     $("messagesBtn").hidden = !isHusband;
+    $("privateStarsBtn").hidden = !isMember;
     await new Promise((r) => requestAnimationFrame(r));
     measure();
     if (!bodies.has("first")) {
