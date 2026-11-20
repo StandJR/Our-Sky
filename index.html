@@ -500,23 +500,22 @@ textarea { resize: vertical; }
 .calendar-entry{padding:10px 12px;border:1px solid var(--card-edge);border-radius:12px;background:rgba(255,255,255,.035);color:var(--cream);text-align:left;font:inherit}
 
 
-/* Полноэкранное личное небо */
-.private-screen{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;overflow:hidden;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 20%,rgba(105,69,158,.28),transparent 48%),radial-gradient(ellipse at 80% 85%,rgba(49,34,94,.2),transparent 45%),linear-gradient(180deg,#090613,#100b20 55%,#080914);color:#f3eaff}
-.private-screen:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.38;background-image:radial-gradient(#d9c6ff .7px,transparent .9px),radial-gradient(rgba(196,165,255,.7) .8px,transparent 1px);background-size:43px 43px,71px 71px;background-position:0 0,19px 23px}
+/* Полноэкранное тайное небо: та же карта звёзд, отдельная бирюзово-синяя палитра */
+.private-screen{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;overflow:hidden;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:radial-gradient(ellipse at 50% 38%,rgba(16,105,123,.24),transparent 58%),radial-gradient(ellipse at 82% 82%,rgba(18,54,105,.22),transparent 48%),linear-gradient(180deg,#030b16 0%,#061525 58%,#020914 100%);color:#e8f8ff}
+.private-screen:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.34;background-image:radial-gradient(rgba(177,235,255,.8) .7px,transparent .9px),radial-gradient(rgba(105,190,220,.65) .8px,transparent 1px);background-size:43px 43px,71px 71px;background-position:0 0,19px 23px}
 .private-screen>*{position:relative}
 .private-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.private-back{border:1px solid rgba(206,180,255,.24);border-radius:999px;background:rgba(255,255,255,.06);color:#e9ddff;padding:10px 15px;font:inherit;font-size:13px}
-.private-top small{color:rgba(221,203,255,.52);font-size:10px;letter-spacing:.17em;text-transform:uppercase}
+.private-back{border:1px solid rgba(139,216,239,.25);border-radius:999px;background:rgba(255,255,255,.06);color:#dff7ff;padding:10px 15px;font:inherit;font-size:13px}
+.private-top small{color:rgba(174,222,239,.55);font-size:10px;letter-spacing:.17em;text-transform:uppercase}
 .private-screen-head{text-align:center;padding:22px 0 12px}
-.private-screen-head .private-kicker{letter-spacing:.25em}
-.private-screen-head h2{margin:0;color:#f2e8ff;font:400 clamp(38px,10vw,54px)/1.05 var(--font-display);text-shadow:0 0 28px rgba(184,143,255,.28)}
-.private-screen-head p{margin:7px 0 0;color:rgba(225,211,249,.58);font-size:12px}
-.private-field{position:relative;flex:1;min-height:0;overflow:auto;padding:8px 2px 22px;display:grid;align-content:start;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
-.private-memory{min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:14px 10px;border:1px solid rgba(190,157,255,.19);border-radius:18px;background:linear-gradient(145deg,rgba(180,136,255,.10),rgba(255,255,255,.025));color:#f2eaff;text-align:center;font:inherit}
-.private-memory-orb{width:9px;height:9px;border-radius:50%;background:#d8baff;box-shadow:0 0 9px 4px rgba(179,132,255,.45),0 0 28px 9px rgba(151,104,225,.22)}
-.private-memory b{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
-.private-memory small{color:rgba(224,207,250,.53);font-size:10px}
-.private-empty{grid-column:1/-1;margin:auto;text-align:center;color:rgba(224,207,250,.62);font-size:13px;max-width:260px;line-height:1.7}
+.private-screen-head .private-kicker{letter-spacing:.25em;color:rgba(170,220,239,.7)}
+.private-screen-head h2{margin:0;color:#e8f8ff;font:400 clamp(38px,10vw,54px)/1.05 var(--font-display);text-shadow:0 0 28px rgba(104,207,235,.3)}
+.private-screen-head p{margin:7px 0 0;color:rgba(190,224,239,.62);font-size:12px}
+.private-field{position:relative;flex:1;min-height:0;overflow:hidden;padding:8px 2px 22px}
+.private-field .secret-star{position:absolute;margin:-24px 0 0 -24px;--star-color:#a8efff;--star-glow:rgba(67,197,225,.72)}
+.private-field .secret-star i{box-shadow:0 0 2px 1px rgba(255,255,255,.98),0 0 9px 4px rgba(115,224,245,.58),0 0 26px 9px rgba(45,166,205,.22)}
+.private-field .secret-star .star-date{color:rgba(190,235,247,.78);text-shadow:0 1px 8px #020914,0 0 5px #020914}
+.private-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:rgba(190,224,239,.62);font-size:13px;max-width:280px;margin:auto;line-height:1.7}
 .constellation-card{position:relative;overflow:hidden;padding:0;border-color:rgba(190,210,245,.17);background:linear-gradient(150deg,rgba(25,37,63,.76),rgba(8,13,25,.86))}
 .constellation-art{display:block;width:100%;height:132px}
 .constellation-info{padding:0 15px 15px}
@@ -1275,14 +1274,24 @@ textarea { resize: vertical; }
       field.append(h("p",{class:"private-empty",text:"Пока здесь тихо. Когда вы сохраните личное воспоминание, оно появится среди этих звёзд."}));
       return;
     }
-    privateStars.slice().sort((a,b)=>String(b.happened_on||"").localeCompare(String(a.happened_on||""))).forEach(s=>{
-      const entry=h("button",{class:"private-memory",type:"button"},
-        h("span",{class:"private-memory-orb"}),
-        h("b",{text:cleanDisplayText(s.title,"Скрытое воспоминание")}),
-        h("small",{text:s.happened_on?fmtFull(s.happened_on):"Дата не указана"})
+    const stars=privateStars.slice().sort((a,b)=>String(a.happened_on||"").localeCompare(String(b.happened_on||"")));
+    const width=field.clientWidth||window.innerWidth;
+    const height=field.clientHeight||Math.max(320,window.innerHeight-260);
+    const goldenAngle=2.399963229728653;
+    stars.forEach((s,index)=>{
+      const dateValue=typeof s.happened_on==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(s.happened_on)?s.happened_on:"";
+      const dateLabel=dateValue?dateValue.slice(8,10)+"."+dateValue.slice(5,7)+"."+dateValue.slice(2,4):"";
+      const star=h("button",{class:"star secret-star",type:"button","aria-label":cleanDisplayText(s.title,"Скрытое воспоминание")+(dateLabel?", "+dateLabel:"")},
+        h("i",{"aria-hidden":"true"}),
+        h("span",{class:"star-date","aria-hidden":"true",text:dateLabel})
       );
-      entry.addEventListener("click",()=>showView(s));
-      field.append(entry);
+      const radius=Math.sqrt((index+.65)/Math.max(1,stars.length))*Math.min(width*.43,height*.39);
+      const angle=index*goldenAngle;
+      star.style.left=((width/2+Math.cos(angle)*radius)/width*100).toFixed(2)+"%";
+      star.style.top=((height/2+Math.sin(angle)*radius)/height*100).toFixed(2)+"%";
+      star.style.setProperty("--d",((hash(s.id)%36)/10).toFixed(1)+"s");
+      star.addEventListener("click",()=>showView(s));
+      field.append(star);
     });
   }
   function closePrivateStars(){
