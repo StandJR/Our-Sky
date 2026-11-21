@@ -803,6 +803,177 @@ input[type="text"],input[type="date"],input[type="email"],input[type="password"]
   .add,.sky-tools .btn,.dock>#messagesBtn{transition:none}
 }
 
+
+/* =========================================================
+   OUR SKY — celestial atelier / art direction v2
+   Visual-only redesign. Keep all app mechanics and star geometry intact.
+   ========================================================= */
+:root{
+  --sky-top:#080b18;--sky-mid:#10152a;--sky-low:#111b2b;
+  --cream:#f8f1e8;--gold:#e8c99b;--mist:rgba(226,222,231,.66);
+  --card:#12182a;--card-edge:rgba(226,207,179,.18);
+  --font-display:"Cormorant Garamond",Georgia,serif;
+  --font-body:"Manrope",system-ui,sans-serif;
+}
+html,body{background:#080b18}
+body{
+  padding:clamp(12px,2.2vw,28px);
+  background:
+    radial-gradient(ellipse at 50% 0%,rgba(97,103,160,.26),transparent 43%),
+    radial-gradient(ellipse at 4% 70%,rgba(57,121,128,.12),transparent 34%),
+    radial-gradient(ellipse at 100% 82%,rgba(135,91,128,.13),transparent 36%),
+    linear-gradient(155deg,#080b18 0%,#10152a 52%,#101b29 100%);
+}
+.sky{
+  background:
+    radial-gradient(ellipse at 50% 48%,rgba(55,75,112,.22),transparent 64%),
+    radial-gradient(ellipse at 50% 100%,rgba(72,105,111,.12),transparent 48%),
+    linear-gradient(180deg,#080b18 0%,#0c1223 58%,#101a29 100%);
+}
+.sky:before,.sky:after{content:"";position:absolute;pointer-events:none;inset:-18%;border-radius:50%;filter:blur(42px);opacity:.45}
+.sky:before{background:radial-gradient(ellipse at 25% 45%,rgba(74,133,139,.19),transparent 34%),radial-gradient(ellipse at 72% 52%,rgba(142,102,157,.17),transparent 37%);animation:atelier-haze 32s ease-in-out infinite alternate}
+.sky:after{background:radial-gradient(ellipse at 54% 32%,rgba(197,159,124,.10),transparent 30%);animation:atelier-haze 24s ease-in-out infinite alternate-reverse}
+@keyframes atelier-haze{from{transform:translate3d(-1.5%,1%,0) scale(.98)}to{transform:translate3d(1.5%,-1%,0) scale(1.06)}}
+#bg{opacity:.94}
+.app{width:min(100%,1120px);margin:0 auto}
+.app>header{
+  position:relative;padding:clamp(22px,5vh,52px) 16px 22px;
+  border:0;background:none;text-align:center;
+}
+.app>header:before{
+  content:"✧  A LITTLE UNIVERSE, JUST FOR TWO  ✧";
+  display:block;margin:0 0 13px;color:rgba(224,196,158,.76);
+  font:700 9px/1.4 var(--font-body);letter-spacing:.28em;
+}
+.app h1{
+  font:400 clamp(54px,12vw,88px)/.82 var(--font-display);
+  letter-spacing:-.035em;color:#fbf3e9;
+  text-shadow:0 4px 34px rgba(211,190,222,.2);
+}
+.since{margin:17px 0 0;color:rgba(231,222,220,.68);font:500 11px/1.5 var(--font-body);letter-spacing:.17em;text-transform:uppercase}
+.count{
+  width:auto;display:flex;justify-content:center;align-items:center;gap:11px;
+  margin:20px auto 0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;
+}
+.count:before,.count:after{content:"";width:clamp(24px,8vw,78px);height:1px;background:linear-gradient(90deg,transparent,rgba(224,193,150,.5))}
+.count:after{transform:scaleX(-1)}
+.count b{font:400 clamp(44px,10vw,66px)/.9 var(--font-display);letter-spacing:-.04em;color:#f0d7b3;text-shadow:0 0 32px rgba(224,190,143,.17)}
+.count span{font:400 clamp(19px,4vw,25px)/1 var(--font-display);color:rgba(245,227,207,.9)}
+.detail{margin:8px 0 0;color:rgba(221,215,226,.48);font-size:10px;letter-spacing:.15em}
+.field{isolation:isolate;min-height:0}
+.field:before{
+  inset:0 1% 1%;border-radius:48%;
+  background:radial-gradient(ellipse,rgba(91,124,148,.11),rgba(109,94,145,.06) 43%,transparent 72%);
+  filter:blur(28px)
+}
+.star{filter:drop-shadow(0 0 11px var(--star-glow));transition:filter .35s ease}
+.star i{
+  width:4px!important;height:4px!important;
+  box-shadow:0 0 2px 1px #fff,0 0 10px 4px var(--star-glow),0 0 30px 11px rgba(190,205,255,.14);
+}
+.star i:before{height:46px;opacity:.32}
+.star-date{font-size:8px;letter-spacing:.13em;color:rgba(242,229,216,.7)}
+.star.first{--star-color:#ffe0a9;--star-glow:rgba(255,211,146,.82)}
+.star.first i{width:6px!important;height:6px!important;box-shadow:0 0 3px 1px #fff,0 0 13px 5px rgba(255,218,160,.7),0 0 38px 14px rgba(238,190,132,.23)}
+.dock{
+  align-self:center;width:min(100%,900px);gap:10px;padding:17px 18px max(14px,env(safe-area-inset-bottom,0px));
+  border:1px solid rgba(218,202,183,.14);border-radius:28px;
+  background:linear-gradient(145deg,rgba(27,32,54,.72),rgba(13,21,36,.78));
+  box-shadow:0 22px 70px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter:blur(28px) saturate(125%);-webkit-backdrop-filter:blur(28px) saturate(125%);
+}
+.add{
+  width:54px;height:54px;border-radius:50%;border:1px solid rgba(255,229,190,.58);
+  background:radial-gradient(circle at 36% 24%,#fff4db 0%,#e9c99b 48%,#b88c70 100%);
+  color:#292235;box-shadow:0 0 0 6px rgba(228,197,155,.07),0 8px 34px rgba(223,183,132,.28),inset 0 1px 0 rgba(255,255,255,.8);
+  transition:transform .25s,box-shadow .25s
+}
+.add svg{width:23px;height:23px;stroke-width:1.7}
+.add:active{transform:scale(.94)}
+.dock>span{font:600 10px/1.2 var(--font-body);letter-spacing:.19em;text-transform:uppercase;color:#ead8bd}
+.sky-tools{width:100%;gap:8px;padding:4px 0 0}
+.sky-tools .btn,.dock>#messagesBtn{
+  min-height:39px;padding:8px 15px;border:1px solid rgba(216,204,194,.15);border-radius:999px;
+  background:rgba(255,255,255,.035);color:rgba(240,233,231,.84);
+  font:600 10px/1.2 var(--font-body);letter-spacing:.055em;
+  transition:background .25s,border-color .25s,transform .25s
+}
+.sky-tools .btn:active,.dock>#messagesBtn:active{transform:translateY(1px)}
+#randomStarBtn{border-color:rgba(225,194,146,.23);color:#f0d5ac;background:rgba(225,194,146,.055)}
+#privateStarsBtn{border-color:rgba(206,160,210,.28);background:linear-gradient(110deg,rgba(176,125,190,.13),rgba(122,119,190,.13));color:#f0dff0}
+#messagesBtn{margin-top:0}
+.gate{background:radial-gradient(ellipse at 50% 38%,rgba(120,104,153,.24),transparent 48%),rgba(7,10,21,.96);backdrop-filter:blur(24px)}
+.gate-in{padding:42px 30px;border:1px solid rgba(222,201,177,.2);border-radius:4px 34px 4px 34px;background:linear-gradient(145deg,rgba(31,37,61,.86),rgba(12,19,34,.93));box-shadow:0 30px 100px rgba(0,0,0,.38)}
+.gate h2{font:400 62px/.9 var(--font-display);color:#f8ead9;text-shadow:0 0 34px rgba(219,184,163,.2)}
+.gate p{font-size:13px;color:rgba(231,221,225,.72)}
+dialog{
+  width:min(100%,570px);border:1px solid rgba(226,205,177,.2);border-radius:28px 28px 0 0;
+  padding:30px 24px calc(27px + env(safe-area-inset-bottom,0px));
+  background:radial-gradient(ellipse at 80% 0%,rgba(155,125,157,.16),transparent 45%),linear-gradient(155deg,#1b2037 0%,#11192c 58%,#0c1423 100%);
+  box-shadow:0 -25px 90px rgba(0,0,0,.52)
+}
+dialog::backdrop{background:rgba(4,7,16,.78);backdrop-filter:blur(14px)}
+.close{width:42px;height:42px;border:1px solid rgba(226,211,193,.13);background:rgba(255,255,255,.055);color:#f6eadd}
+.card-date{color:#e6c99e;font:700 9px/1.4 var(--font-body);letter-spacing:.2em}
+.card-title{font:400 43px/1 var(--font-display);color:#fbf0e5}
+.card-text{font-size:15px;line-height:1.8;color:rgba(246,238,234,.9)}
+.card-photo img,.card-photo video{border-radius:22px}
+.comments{border-color:rgba(226,207,179,.14)}
+.comment,.calendar-entry{border-color:rgba(226,207,179,.13);border-radius:17px;background:rgba(255,255,255,.035)}
+.comment strong{color:#e9d0ac}
+.btn{border-color:rgba(226,207,179,.18);background:rgba(255,255,255,.045);color:#f3eae5}
+.btn.primary,.row .btn.primary{background:linear-gradient(135deg,#f7e5c5,#d7b88c);color:#292235;border:0;box-shadow:0 8px 26px rgba(215,183,140,.2)}
+.btn.danger{color:#ffbdc5;border-color:rgba(255,145,165,.22)}
+input[type="text"],input[type="date"],input[type="email"],input[type="password"],textarea,
+.memory-form input[type="text"],.memory-form input[type="date"],.memory-form textarea,.memory-form select{
+  border:1px solid rgba(226,207,179,.17);border-radius:14px;background:rgba(5,9,20,.55);color:#f8f0e8
+}
+.memory-section{border-color:rgba(226,207,179,.13);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.014))}
+.memory-section-title{color:#f2e8df}
+.memory-section-title span{background:rgba(224,195,151,.12);color:#efd5ad}
+.memory-toggle{border-color:rgba(226,207,179,.14);background:rgba(255,255,255,.03)}
+.memory-toggle-copy b{color:#f3e9e6}
+.memory-upload-pick{border-color:rgba(226,207,179,.3);background:rgba(193,160,132,.055);color:#f0e3d8}
+.toast{border-color:rgba(226,207,179,.22);border-radius:18px;background:rgba(19,25,43,.96);color:#f7ecdf;box-shadow:0 14px 44px rgba(0,0,0,.38);backdrop-filter:blur(20px)}
+.private-screen{
+  background:
+    radial-gradient(ellipse at 50% 20%,rgba(218,158,201,.24),transparent 42%),
+    radial-gradient(ellipse at 8% 76%,rgba(135,120,208,.24),transparent 44%),
+    radial-gradient(ellipse at 96% 72%,rgba(219,176,161,.16),transparent 40%),
+    linear-gradient(155deg,#171328 0%,#241a37 54%,#111326 100%)
+}
+.private-back{border:1px solid rgba(255,224,240,.25);border-radius:999px;background:rgba(255,255,255,.07);padding:10px 16px;color:#ffedf5}
+.private-screen-head h2{font:400 clamp(48px,11vw,76px)/.9 var(--font-display);letter-spacing:-.03em}
+.private-screen-head p{font-size:11px;letter-spacing:.09em}
+.private-field .secret-star i{box-shadow:0 0 3px 1px #fff,0 0 13px 5px rgba(255,190,231,.72),0 0 38px 14px rgba(196,157,255,.3)}
+.constellation-card{border-color:rgba(226,207,179,.15);border-radius:20px;background:linear-gradient(145deg,rgba(35,40,66,.82),rgba(13,20,36,.94));box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 16px 38px rgba(0,0,0,.2)}
+.constellation-info h3{font:400 27px/1 var(--font-display);color:#f4e6d8}
+.constellation-points button,.constellation-stars button{border-color:rgba(226,207,179,.16);background:rgba(255,255,255,.045);color:#f0e8e7}
+.calendar-day{border-color:rgba(226,207,179,.12);border-radius:13px;background:rgba(255,255,255,.03);color:#f1e7e2}
+.calendar-day.has-stars{border-color:rgba(231,197,148,.48);background:rgba(231,197,148,.12);color:#f5d9ad}
+.admin-access{border-color:rgba(226,207,179,.15);border-radius:20px;background:linear-gradient(145deg,rgba(35,40,66,.78),rgba(13,20,36,.9))}
+@media(max-width:600px){
+  body{padding: max(9px,env(safe-area-inset-top,0px)) 10px max(9px,env(safe-area-inset-bottom,0px))}
+  .app>header{padding:clamp(18px,3.5vh,30px) 8px 12px}
+  .app>header:before{font-size:8px;letter-spacing:.2em;margin-bottom:12px}
+  .app h1{font-size:clamp(54px,15vw,70px)}
+  .since{margin-top:13px;font-size:9px;letter-spacing:.12em}
+  .count{margin-top:16px}
+  .count b{font-size:50px}
+  .detail{font-size:9px}
+  .dock{padding:13px 10px max(10px,env(safe-area-inset-bottom,0px));border-radius:23px;gap:8px}
+  .add{width:50px;height:50px}
+  .sky-tools{gap:6px}
+  .sky-tools .btn,.dock>#messagesBtn{min-height:35px;padding:7px 10px;font-size:9px;letter-spacing:.02em}
+  dialog{padding-left:17px;padding-right:17px}
+  .card-title{font-size:38px}
+}
+@media(min-width:700px){
+  .app>header{padding-top:clamp(30px,6vh,68px)}
+  .dock{margin-bottom:8px}
+}
+@media(prefers-reduced-motion:reduce){.sky:before,.sky:after{animation:none!important}.add,.sky-tools .btn{transition:none}}
+
 </style>
 </head>
 <body>
